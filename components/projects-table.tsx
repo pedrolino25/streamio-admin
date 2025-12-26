@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -9,26 +11,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
+import { useClipboard } from "@/lib/hooks/use-clipboard";
+import { Project } from "@/lib/services/project-service";
+import { formatDate } from "@/lib/utils/date-utils";
 import { Check, Copy, FolderPlus } from "lucide-react";
 import { DeleteProjectDialog } from "./delete-project-dialog";
-import { Project } from "@/lib/services/project-service";
-import { useClipboard } from "@/lib/hooks/use-clipboard";
-import { formatDate } from "@/lib/utils/date-utils";
 
 interface ProjectsTableProps {
   projects: Project[];
   onDelete: () => void;
 }
 
-/**
- * ProjectsTable Component
- *
- * Displays projects in a responsive table format.
- * Follows Composition Pattern with reusable sub-components.
- * Mobile-friendly with responsive design.
- */
 export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
   const { copyToClipboard, copiedId } = useClipboard();
 
@@ -44,15 +37,22 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
 
   return (
     <div className="divide-y">
-      {/* Desktop Table View */}
       <div className="hidden overflow-x-auto md:block">
         <Table>
           <TableHeader>
             <TableRow className="border-b bg-muted/50 hover:bg-muted/50">
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">Project Name</TableHead>
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">API Key</TableHead>
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">Webhook URL</TableHead>
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">Created</TableHead>
+              <TableHead className="h-12 px-4 font-semibold sm:px-6">
+                Project Name
+              </TableHead>
+              <TableHead className="h-12 px-4 font-semibold sm:px-6">
+                API Key
+              </TableHead>
+              <TableHead className="h-12 px-4 font-semibold sm:px-6">
+                Webhook URL
+              </TableHead>
+              <TableHead className="h-12 px-4 font-semibold sm:px-6">
+                Created
+              </TableHead>
               <TableHead className="h-12 w-[100px] px-4 font-semibold text-right sm:px-6">
                 Actions
               </TableHead>
@@ -87,7 +87,10 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                       aria-label={`Copy API key ${project.project_id}`}
                     >
                       {copiedId === project.project_id ? (
-                        <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                        <Check
+                          className="h-4 w-4 text-primary"
+                          aria-hidden="true"
+                        />
                       ) : (
                         <Copy className="h-4 w-4" aria-hidden="true" />
                       )}
@@ -119,7 +122,6 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
         </Table>
       </div>
 
-      {/* Mobile Card View */}
       <div className="block space-y-4 p-4 md:hidden sm:p-6">
         {projects.map((project) => (
           <Card key={project.project_id} className="border shadow-sm">
@@ -159,7 +161,10 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     aria-label={`Copy API key ${project.project_id}`}
                   >
                     {copiedId === project.project_id ? (
-                      <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                      <Check
+                        className="h-4 w-4 text-primary"
+                        aria-hidden="true"
+                      />
                     ) : (
                       <Copy className="h-4 w-4" aria-hidden="true" />
                     )}
