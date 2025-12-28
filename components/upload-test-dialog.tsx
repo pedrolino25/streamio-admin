@@ -8,8 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { ErrorMessage } from "@/components/ui/error-message";
 import {
   Form,
   FormControl,
@@ -20,18 +20,29 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ErrorMessage } from "@/components/ui/error-message";
-import { SuccessMessage } from "@/components/ui/success-message";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SuccessMessage } from "@/components/ui/success-message";
+import {
+  UploadTestFormValues,
+  uploadTestSchema,
+} from "@/lib/schemas/upload-schemas";
+import { SignedUrlProvider } from "@/lib/signed-url-context";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { uploadTestSchema, UploadTestFormValues } from "@/lib/schemas/upload-schemas";
-import { uploadToS3 } from "streamio-lib";
 
-export function UploadTestDialog() {
-  const [open, setOpen] = useState(false);
+interface UploadTestDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  apiKey: string;
+}
+
+function UploadTestDialogContent({
+  open,
+  onOpenChange,
+  apiKey,
+}: UploadTestDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -42,7 +53,6 @@ export function UploadTestDialog() {
   const form = useForm<UploadTestFormValues>({
     resolver: zodResolver(uploadTestSchema),
     defaultValues: {
-      apiKey: "",
       path: "",
     },
   });
@@ -56,6 +66,50 @@ export function UploadTestDialog() {
     }
   };
 
+  async function uploadFile(
+    file: File,
+    apiKey: string,
+    path?: string
+  ): Promise<{ uploadUrl: string; s3Key: string; expiresIn: number }> {
+    const response = await fetch(
+      "https://api.stream-io.cloud/presigned-upload-url",
+      {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          path: path?.trim() || "",
+          contentType: file.type,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to get upload URL");
+    }
+
+    const { uploadUrl, s3Key, expiresIn } = await response.json();
+
+    setUploadProgress(30);
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+      },
+      body: file,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+    }
+
+    return { uploadUrl, s3Key, expiresIn };
+  }
+
   const handleSubmit = async (values: UploadTestFormValues) => {
     if (!values.file) {
       setError("Please select a file");
@@ -66,30 +120,15 @@ export function UploadTestDialog() {
     setError("");
     setSuccess(false);
     setUploadProgress(0);
-
     try {
-      const result = await uploadToS3({
-        file: values.file,
-        path: values.path?.trim() || "",
-        config: {
-          region: process.env.NEXT_PUBLIC_AWS_REGION!,
-          accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID!,
-          secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY!,
-          apiKey: values.apiKey.trim(),
-          lambda: process.env.NEXT_PUBLIC_UPLOAD_LAMBDA_FUNCTION_NAME!,
-        },
-        onProgress: (progress: number) => {
-          setUploadProgress(progress);
-        },
-      });
-
-      if (result.success) {
-        setSuccess(true);
-        setS3Key(result.s3Key || "");
-        setUploadProgress(100);
-      } else {
-        setError(result.error || "Upload failed");
-      }
+      const { s3Key } = await uploadFile(
+        values.file,
+        apiKey,
+        values.path?.trim() || ""
+      );
+      setSuccess(true);
+      setS3Key(s3Key || "");
+      setUploadProgress(100);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
       setUploadProgress(0);
@@ -99,7 +138,7 @@ export function UploadTestDialog() {
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
+    onOpenChange(newOpen);
     if (!newOpen) {
       form.reset();
       setError("");
@@ -116,40 +155,17 @@ export function UploadTestDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Test
-        </Button>
-      </DialogTrigger>
       <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Upload Test</DialogTitle>
           <DialogDescription>
-            Test file upload by providing an API key and selecting a file. The
-            file will be uploaded to S3 using a presigned URL.
+            Test file upload by selecting a file. The file will be uploaded to
+            S3 using a presigned URL.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="apiKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>API Key</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your API key"
-                        {...field}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="path"
@@ -164,8 +180,8 @@ export function UploadTestDialog() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Optional path prefix for the file in S3. Include trailing slash if
-                      needed.
+                      Optional path prefix for the file in S3. Include trailing
+                      slash if needed.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -174,7 +190,7 @@ export function UploadTestDialog() {
               <FormField
                 control={form.control}
                 name="file"
-                render={({ field: { value, onChange, ...field } }) => (
+                render={({ field: { onChange, ...field } }) => (
                   <FormItem>
                     <FormLabel>File</FormLabel>
                     <FormControl>
@@ -188,18 +204,20 @@ export function UploadTestDialog() {
                           }
                         }}
                         disabled={loading}
-                        {...field}
                         ref={(e) => {
                           field.ref(e);
                           if (fileInputRef.current !== e) {
-                            (fileInputRef as React.MutableRefObject<HTMLInputElement | null>).current = e;
+                            (
+                              fileInputRef as React.MutableRefObject<HTMLInputElement | null>
+                            ).current = e;
                           }
                         }}
                       />
                     </FormControl>
                     {selectedFile && (
                       <FormDescription>
-                        Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                        Selected: {selectedFile.name} (
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                       </FormDescription>
                     )}
                     <FormMessage />
@@ -255,5 +273,21 @@ export function UploadTestDialog() {
         </Form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function UploadTestDialog({
+  open,
+  onOpenChange,
+  apiKey,
+}: UploadTestDialogProps) {
+  return (
+    <SignedUrlProvider apiKey={apiKey}>
+      <UploadTestDialogContent
+        open={open}
+        onOpenChange={onOpenChange}
+        apiKey={apiKey}
+      />
+    </SignedUrlProvider>
   );
 }

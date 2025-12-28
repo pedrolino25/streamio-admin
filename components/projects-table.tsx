@@ -14,8 +14,11 @@ import {
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Project } from "@/lib/services/project-service";
 import { formatDate } from "@/lib/utils/date-utils";
-import { Check, Copy, FolderPlus } from "lucide-react";
+import { Check, Copy, FolderPlus, Play, Upload } from "lucide-react";
+import { useState } from "react";
 import { DeleteProjectDialog } from "./delete-project-dialog";
+import { UploadTestDialog } from "./upload-test-dialog";
+import { VideoPlaybackTestDialog } from "./video-playback-test-dialog";
 
 interface ProjectsTableProps {
   projects: Project[];
@@ -24,6 +27,12 @@ interface ProjectsTableProps {
 
 export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
   const { copyToClipboard, copiedId } = useClipboard();
+  const [testPlaybackProjectId, setTestPlaybackProjectId] = useState<
+    string | null
+  >(null);
+  const [testUploadProjectId, setTestUploadProjectId] = useState<string | null>(
+    null
+  );
 
   if (projects.length === 0) {
     return (
@@ -110,11 +119,31 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                   {formatDate(project.created_at)}
                 </TableCell>
                 <TableCell className="px-4 py-4 text-right sm:px-6">
-                  <DeleteProjectDialog
-                    projectId={project.project_id}
-                    projectName={project.project_name}
-                    onSuccess={onDelete}
-                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setTestPlaybackProjectId(project.project_id)
+                      }
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      Test Playback
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTestUploadProjectId(project.project_id)}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Test
+                    </Button>
+                    <DeleteProjectDialog
+                      projectId={project.project_id}
+                      projectName={project.project_name}
+                      onSuccess={onDelete}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -136,11 +165,29 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     )}
                   </h3>
                 </div>
-                <DeleteProjectDialog
-                  projectId={project.project_id}
-                  projectName={project.project_name}
-                  onSuccess={onDelete}
-                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTestPlaybackProjectId(project.project_id)}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Test Playback
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTestUploadProjectId(project.project_id)}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Test
+                  </Button>
+                  <DeleteProjectDialog
+                    projectId={project.project_id}
+                    projectName={project.project_name}
+                    onSuccess={onDelete}
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
@@ -193,6 +240,30 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
           </Card>
         ))}
       </div>
+
+      {testPlaybackProjectId && (
+        <VideoPlaybackTestDialog
+          open={testPlaybackProjectId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTestPlaybackProjectId(null);
+            }
+          }}
+          apiKey={testPlaybackProjectId}
+        />
+      )}
+
+      {testUploadProjectId && (
+        <UploadTestDialog
+          open={testUploadProjectId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTestUploadProjectId(null);
+            }
+          }}
+          apiKey={testUploadProjectId}
+        />
+      )}
     </div>
   );
 }

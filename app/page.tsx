@@ -15,7 +15,6 @@ import {
 import { ErrorMessage } from "@/components/ui/error-message";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { PageHeader } from "@/components/ui/page-header";
-import { UploadTestDialog } from "@/components/upload-test-dialog";
 import { WebhookTestDialog } from "@/components/webhook-test-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -69,7 +68,6 @@ export default function Home() {
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <UploadTestDialog />
                   <WebhookTestDialog />
                   <CreateProjectDialog onSuccess={refetch} />
                 </div>
