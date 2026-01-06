@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
@@ -17,11 +18,13 @@ import {
   formatElapsedProcessingTime,
   formatProcessingDuration,
 } from "@/lib/utils/date-utils";
-import { Film } from "lucide-react";
+import { Film, Play } from "lucide-react";
 import { useEffect, useState } from "react";
+import { VideoPlaybackTestDialog } from "./video-playback-test-dialog";
 
 interface VideosTableProps {
   videos: Video[];
+  apiKey: string;
 }
 
 function ProcessingTimeDisplay({
@@ -78,7 +81,17 @@ function ProcessingTimeDisplay({
   );
 }
 
-export function VideosTable({ videos }: VideosTableProps) {
+export function VideosTable({ videos, apiKey }: VideosTableProps) {
+  const [testPlaybackOpen, setTestPlaybackOpen] = useState(false);
+  const [selectedVideoPath, setSelectedVideoPath] = useState<string | null>(
+    null
+  );
+
+  const handlePlayVideo = (videoPath: string) => {
+    setSelectedVideoPath(videoPath);
+    setTestPlaybackOpen(true);
+  };
+
   const getStatusVariant = (
     status: Video["status"]
   ): "default" | "secondary" | "destructive" | "outline" => {
@@ -204,9 +217,23 @@ export function VideosTable({ videos }: VideosTableProps) {
                 </TableCell>
                 <TableCell className="px-4 py-4 sm:px-6">
                   {video.path ? (
-                    <code className="max-w-xs truncate rounded bg-muted px-2 py-1 font-mono text-xs text-foreground sm:max-w-md">
-                      {video.path}
-                    </code>
+                    <div className="flex items-center gap-2">
+                      <code className="max-w-xs truncate rounded bg-muted px-2 py-1 font-mono text-xs text-foreground sm:max-w-md">
+                        {video.path}
+                      </code>
+                      {video.status === "PROCESSED" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
+                          onClick={() => handlePlayVideo(video.path!)}
+                          title="Play video"
+                          aria-label={`Play video ${video.path}`}
+                        >
+                          <Play className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-sm text-muted-foreground">—</span>
                   )}
@@ -262,9 +289,23 @@ export function VideosTable({ videos }: VideosTableProps) {
                   <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                     Path
                   </p>
-                  <code className="block break-all rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
-                    {video.path}
-                  </code>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 break-all rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                      {video.path}
+                    </code>
+                    {video.status === "PROCESSED" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
+                        onClick={() => handlePlayVideo(video.path!)}
+                        title="Play video"
+                        aria-label={`Play video ${video.path}`}
+                      >
+                        <Play className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
@@ -320,6 +361,18 @@ export function VideosTable({ videos }: VideosTableProps) {
           </div>
         ))}
       </div>
+
+      <VideoPlaybackTestDialog
+        open={testPlaybackOpen}
+        onOpenChange={(open) => {
+          setTestPlaybackOpen(open);
+          if (!open) {
+            setSelectedVideoPath(null);
+          }
+        }}
+        apiKey={apiKey}
+        initialVideoPath={selectedVideoPath || undefined}
+      />
     </div>
   );
 }

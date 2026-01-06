@@ -14,14 +14,13 @@ import { ErrorMessage } from "@/components/ui/error-message";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { PageHeader } from "@/components/ui/page-header";
 import { UploadTestDialog } from "@/components/upload-test-dialog";
-import { VideoPlaybackTestDialog } from "@/components/video-playback-test-dialog";
 import { VideosTable } from "@/components/videos-table";
 import { WebhookTestDialogControlled } from "@/components/webhook-test-dialog-controlled";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { useProject } from "@/lib/hooks/use-project";
 import { useVideos } from "@/lib/hooks/use-videos";
 import { formatDate } from "@/lib/utils/date-utils";
-import { ArrowLeft, Check, Copy, Play, Upload, Webhook } from "lucide-react";
+import { ArrowLeft, Check, Copy, Upload, Webhook } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -41,7 +40,6 @@ export default function ProjectDetailPage() {
     refetch,
   } = useVideos(project?.project_name || "");
   const { copyToClipboard, copiedId } = useClipboard();
-  const [testPlaybackOpen, setTestPlaybackOpen] = useState(false);
   const [testUploadOpen, setTestUploadOpen] = useState(false);
   const [testWebhookOpen, setTestWebhookOpen] = useState(false);
 
@@ -118,14 +116,6 @@ export default function ProjectDetailPage() {
                       >
                         <Upload className="mr-2 h-4 w-4" />
                         Upload Test
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTestPlaybackOpen(true)}
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Test Playback
                       </Button>
                       <Button
                         variant="outline"
@@ -256,7 +246,7 @@ export default function ProjectDetailPage() {
                       </Button>
                     </div>
                   ) : (
-                    <VideosTable videos={videos} />
+                    <VideosTable videos={videos} apiKey={project.project_id} />
                   )}
                 </CardContent>
               </Card>
@@ -267,11 +257,6 @@ export default function ProjectDetailPage() {
         {/* Test Dialogs */}
         {project && (
           <>
-            <VideoPlaybackTestDialog
-              open={testPlaybackOpen}
-              onOpenChange={setTestPlaybackOpen}
-              apiKey={project.project_id}
-            />
             <UploadTestDialog
               open={testUploadOpen}
               onOpenChange={setTestUploadOpen}

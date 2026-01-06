@@ -11,15 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Project } from "@/lib/services/project-service";
 import { formatDate } from "@/lib/utils/date-utils";
-import { Check, Copy, FolderPlus, Play, Upload, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DeleteProjectDialog } from "./delete-project-dialog";
-import { UploadTestDialog } from "./upload-test-dialog";
-import { VideoPlaybackTestDialog } from "./video-playback-test-dialog";
 
 interface ProjectsTableProps {
   projects: Project[];
@@ -27,14 +23,7 @@ interface ProjectsTableProps {
 }
 
 export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
-  const { copyToClipboard, copiedId } = useClipboard();
   const router = useRouter();
-  const [testPlaybackProjectId, setTestPlaybackProjectId] = useState<
-    string | null
-  >(null);
-  const [testUploadProjectId, setTestUploadProjectId] = useState<string | null>(
-    null
-  );
 
   if (projects.length === 0) {
     return (
@@ -54,12 +43,6 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
             <TableRow className="border-b bg-muted/50 hover:bg-muted/50">
               <TableHead className="h-12 px-4 font-semibold sm:px-6">
                 Project Name
-              </TableHead>
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">
-                API Key
-              </TableHead>
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">
-                Webhook URL
               </TableHead>
               <TableHead className="h-12 px-4 font-semibold sm:px-6">
                 Created
@@ -84,39 +67,6 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center gap-2">
-                    <code className="max-w-xs truncate rounded bg-muted px-2.5 py-1.5 font-mono text-xs text-foreground sm:max-w-md">
-                      {project.project_id}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                      onClick={() => copyToClipboard(project.project_id)}
-                      title="Copy API key"
-                      aria-label={`Copy API key ${project.project_id}`}
-                    >
-                      {copiedId === project.project_id ? (
-                        <Check
-                          className="h-4 w-4 text-primary"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <Copy className="h-4 w-4" aria-hidden="true" />
-                      )}
-                    </Button>
-                  </div>
-                </TableCell>
-                <TableCell className="px-4 py-4 sm:px-6">
-                  {project.webhook_url ? (
-                    <code className="block max-w-xs truncate rounded bg-muted px-2.5 py-1.5 font-mono text-xs text-foreground sm:max-w-md">
-                      {project.webhook_url}
-                    </code>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-muted-foreground sm:px-6">
                   {formatDate(project.created_at)}
                 </TableCell>
@@ -131,24 +81,6 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
                       View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setTestPlaybackProjectId(project.project_id)
-                      }
-                    >
-                      <Play className="mr-2 h-4 w-4" />
-                      Test Playback
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTestUploadProjectId(project.project_id)}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Test
                     </Button>
                     <DeleteProjectDialog
                       projectId={project.project_id}
@@ -188,22 +120,6 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     <ExternalLink className="mr-2 h-4 w-4" />
                     View
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTestPlaybackProjectId(project.project_id)}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    Test Playback
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTestUploadProjectId(project.project_id)}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Test
-                  </Button>
                   <DeleteProjectDialog
                     projectId={project.project_id}
                     projectName={project.project_name}
@@ -213,43 +129,6 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
               </div>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                  API Key
-                </p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 break-all rounded bg-muted px-2.5 py-1.5 font-mono text-xs text-foreground">
-                    {project.project_id}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                    onClick={() => copyToClipboard(project.project_id)}
-                    title="Copy API key"
-                    aria-label={`Copy API key ${project.project_id}`}
-                  >
-                    {copiedId === project.project_id ? (
-                      <Check
-                        className="h-4 w-4 text-primary"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <Copy className="h-4 w-4" aria-hidden="true" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              {project.webhook_url && (
-                <div>
-                  <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                    Webhook URL
-                  </p>
-                  <code className="block break-all rounded bg-muted px-2.5 py-1.5 font-mono text-xs text-foreground">
-                    {project.webhook_url}
-                  </code>
-                </div>
-              )}
               <div>
                 <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                   Created
@@ -262,30 +141,6 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
           </Card>
         ))}
       </div>
-
-      {testPlaybackProjectId && (
-        <VideoPlaybackTestDialog
-          open={testPlaybackProjectId !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setTestPlaybackProjectId(null);
-            }
-          }}
-          apiKey={testPlaybackProjectId}
-        />
-      )}
-
-      {testUploadProjectId && (
-        <UploadTestDialog
-          open={testUploadProjectId !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setTestUploadProjectId(null);
-            }
-          }}
-          apiKey={testUploadProjectId}
-        />
-      )}
     </div>
   );
 }

@@ -36,14 +36,17 @@ interface VideoPlaybackTestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   apiKey: string;
+  initialVideoPath?: string;
 }
 
 function VideoPlaybackTestDialogContent({
   open,
   onOpenChange,
+  initialVideoPath,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialVideoPath?: string;
 }) {
   const [error, setError] = useState("");
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -55,9 +58,16 @@ function VideoPlaybackTestDialogContent({
   const form = useForm<VideoPlaybackTestFormValues>({
     resolver: zodResolver(videoPlaybackTestSchema),
     defaultValues: {
-      videoUrl: "",
+      videoUrl: initialVideoPath || "",
     },
   });
+
+  // Update form when initialVideoPath changes
+  useEffect(() => {
+    if (initialVideoPath && open) {
+      form.setValue("videoUrl", initialVideoPath);
+    }
+  }, [initialVideoPath, open, form]);
 
   // Cleanup HLS instance when component unmounts or URL changes
   useEffect(() => {
@@ -280,10 +290,15 @@ export function VideoPlaybackTestDialog({
   open,
   onOpenChange,
   apiKey,
+  initialVideoPath,
 }: VideoPlaybackTestDialogProps) {
   return (
     <SignedUrlProvider apiKey={apiKey}>
-      <VideoPlaybackTestDialogContent open={open} onOpenChange={onOpenChange} />
+      <VideoPlaybackTestDialogContent
+        open={open}
+        onOpenChange={onOpenChange}
+        initialVideoPath={initialVideoPath}
+      />
     </SignedUrlProvider>
   );
 }
