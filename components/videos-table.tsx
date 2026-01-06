@@ -14,8 +14,8 @@ import {
 import { Video } from "@/lib/services/video-service";
 import {
   formatDate,
-  formatProcessingDuration,
   formatElapsedProcessingTime,
+  formatProcessingDuration,
 } from "@/lib/utils/date-utils";
 import { Film } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -35,15 +35,14 @@ function ProcessingTimeDisplay({
 
   useEffect(() => {
     if (!startTimestamp) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setElapsedTime("—");
       return;
     }
 
     if (endTimestamp) {
       // Processing finished - show final duration
-      setElapsedTime(
-        formatProcessingDuration(startTimestamp, endTimestamp)
-      );
+      setElapsedTime(formatProcessingDuration(startTimestamp, endTimestamp));
       return;
     }
 
@@ -109,7 +108,7 @@ export function VideosTable({ videos }: VideosTableProps) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     const parts: string[] = [];
     if (hours > 0) {
       parts.push(`${hours} h`);
@@ -121,8 +120,28 @@ export function VideosTable({ videos }: VideosTableProps) {
       // Only show seconds if less than an hour
       parts.push(`${secs} sec`);
     }
-    
+
     return parts.length > 0 ? parts.join(" ") : "0 sec";
+  };
+
+  const formatConfiguration = (config?: Video["configuration"]): string => {
+    if (!config) return "—";
+
+    const parts: string[] = [];
+    if (config.videoQuality) {
+      parts.push(`Quality: ${config.videoQuality}`);
+    }
+    if (config.maxResolution) {
+      parts.push(`Res: ${config.maxResolution}`);
+    }
+    if (config.thumbnailImage) {
+      parts.push(`Thumb: ${config.thumbnailImage}`);
+    }
+    if (config.previewImages) {
+      parts.push("Previews");
+    }
+
+    return parts.length > 0 ? parts.join(", ") : "—";
   };
 
   if (videos.length === 0) {
@@ -161,6 +180,9 @@ export function VideosTable({ videos }: VideosTableProps) {
               </TableHead>
               <TableHead className="h-12 px-4 font-semibold sm:px-6">
                 Processing
+              </TableHead>
+              <TableHead className="h-12 px-4 font-semibold sm:px-6">
+                Configuration
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -204,6 +226,11 @@ export function VideosTable({ videos }: VideosTableProps) {
                     endTimestamp={video.processing_end_timestamp}
                   />
                 </TableCell>
+                <TableCell className="px-4 py-4 text-sm text-muted-foreground sm:px-6">
+                  <span className="max-w-xs truncate block">
+                    {formatConfiguration(video.configuration)}
+                  </span>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -223,7 +250,10 @@ export function VideosTable({ videos }: VideosTableProps) {
                     {video.id}
                   </code>
                 </div>
-                <Badge variant={getStatusVariant(video.status)} className="ml-2 shrink-0">
+                <Badge
+                  variant={getStatusVariant(video.status)}
+                  className="ml-2 shrink-0"
+                >
                   {video.status}
                 </Badge>
               </div>
@@ -276,6 +306,16 @@ export function VideosTable({ videos }: VideosTableProps) {
                   </p>
                 </div>
               )}
+              {video.configuration && (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                    Configuration
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatConfiguration(video.configuration)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -283,4 +323,3 @@ export function VideosTable({ videos }: VideosTableProps) {
     </div>
   );
 }
-

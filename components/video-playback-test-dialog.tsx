@@ -108,13 +108,6 @@ function VideoPlaybackTestDialogContent({
       hls.loadSource(signedUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch((err) => {
-          console.error("Error playing video:", err);
-          setError("Failed to play video. Please check the URL and try again.");
-        });
-      });
-
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
           switch (data.type) {
@@ -142,10 +135,6 @@ function VideoPlaybackTestDialogContent({
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       // Native HLS support (Safari)
       video.src = signedUrl;
-      video.play().catch((err) => {
-        console.error("Error playing video:", err);
-        setError("Failed to play video. Please check the URL and try again.");
-      });
     } else {
       setError("HLS playback is not supported in this browser.");
     }

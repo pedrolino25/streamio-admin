@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Select } from "@/components/ui/select";
 import { SuccessMessage } from "@/components/ui/success-message";
 import {
   UploadTestFormValues,
@@ -54,6 +56,12 @@ function UploadTestDialogContent({
     resolver: zodResolver(uploadTestSchema),
     defaultValues: {
       path: "",
+      configuration: {
+        videoQuality: "high",
+        maxResolution: "source",
+        thumbnailImage: "",
+        previewImages: false,
+      },
     },
   });
 
@@ -69,8 +77,52 @@ function UploadTestDialogContent({
   async function uploadFile(
     file: File,
     apiKey: string,
-    path?: string
+    path?: string,
+    configuration?: {
+      videoQuality: "low" | "medium" | "high";
+      maxResolution: "720p" | "1080p" | "source";
+      thumbnailImage?: string;
+      previewImages?: boolean;
+    }
   ): Promise<{ uploadUrl: string; s3Key: string; expiresIn: number }> {
+    const requestBody: {
+      filename: string;
+      path: string;
+      contentType: string;
+      configuration?: {
+        videoQuality: "low" | "medium" | "high";
+        maxResolution: "720p" | "1080p" | "source";
+        thumbnailImage?: string;
+        previewImages?: boolean;
+      };
+    } = {
+      filename: file.name,
+      path: path?.trim() || "",
+      contentType: file.type,
+    };
+
+    if (configuration) {
+      const config: {
+        videoQuality: "low" | "medium" | "high";
+        maxResolution: "720p" | "1080p" | "source";
+        thumbnailImage?: string;
+        previewImages?: boolean;
+      } = {
+        videoQuality: configuration.videoQuality,
+        maxResolution: configuration.maxResolution,
+      };
+
+      if (configuration.thumbnailImage?.trim()) {
+        config.thumbnailImage = configuration.thumbnailImage.trim();
+      }
+
+      if (configuration.previewImages !== undefined) {
+        config.previewImages = configuration.previewImages;
+      }
+
+      requestBody.configuration = config;
+    }
+
     const response = await fetch(
       "https://api.stream-io.cloud/presigned-upload-url",
       {
@@ -79,11 +131,7 @@ function UploadTestDialogContent({
           "x-api-key": apiKey,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          filename: file.name,
-          path: path?.trim() || "",
-          contentType: file.type,
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
@@ -124,7 +172,8 @@ function UploadTestDialogContent({
       const { s3Key } = await uploadFile(
         values.file,
         apiKey,
-        values.path?.trim() || ""
+        values.path?.trim() || "",
+        values.configuration
       );
       setSuccess(true);
       setS3Key(s3Key || "");
@@ -141,6 +190,15 @@ function UploadTestDialogContent({
     onOpenChange(newOpen);
     if (!newOpen) {
       form.reset();
+      form.reset({
+        path: "",
+        configuration: {
+          videoQuality: "high",
+          maxResolution: "source",
+          thumbnailImage: "",
+          previewImages: false,
+        },
+      });
       setError("");
       setSuccess(false);
       setUploadProgress(0);
@@ -224,6 +282,93 @@ function UploadTestDialogContent({
                   </FormItem>
                 )}
               />
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-sm font-medium">
+                  Processing Configuration
+                </h3>
+                <FormField
+                  control={form.control}
+                  name="configuration.videoQuality"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Video Quality</FormLabel>
+                      <FormControl>
+                        <Select {...field} disabled={loading}>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </Select>
+                      </FormControl>
+                      <FormDescription>
+                        Quality setting for video processing
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="configuration.maxResolution"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Resolution</FormLabel>
+                      <FormControl>
+                        <Select {...field} disabled={loading}>
+                          <option value="720p">720p</option>
+                          <option value="1080p">1080p</option>
+                          <option value="source">Source</option>
+                        </Select>
+                      </FormControl>
+                      <FormDescription>
+                        Maximum resolution for video processing
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="configuration.thumbnailImage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Thumbnail Image (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 10s"
+                          {...field}
+                          disabled={loading}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Time position for thumbnail extraction (e.g.,
+                        &quot;10s&quot;, &quot;00:00:10&quot;)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="configuration.previewImages"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value || false}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          disabled={loading}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Preview Images</FormLabel>
+                        <FormDescription>
+                          Generate preview images for the video
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
               {uploadProgress > 0 && uploadProgress < 100 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">

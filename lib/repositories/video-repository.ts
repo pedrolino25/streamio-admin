@@ -1,5 +1,6 @@
 import { logger } from "@/lib/services/logger";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
+import { ProcessingConfiguration } from "@/lib/schemas/upload-schemas";
 import {
   DynamoDBDocumentClient,
   QueryCommand,
@@ -16,6 +17,7 @@ export interface Video {
   upload_start_timestamp?: string;
   processing_start_timestamp?: string;
   processing_end_timestamp?: string;
+  configuration?: ProcessingConfiguration;
 }
 
 export interface VideoRepositoryConfig {
@@ -52,7 +54,7 @@ export class VideoRepository {
       });
 
       const response = await this.client.send(command);
-      const videos = (response.Items || []) as Video[];
+      const videos = (response.Items || []).map(this.parseVideo) as Video[];
 
       // Sort by upload_start_timestamp descending
       return this.sortByUploadDate(videos);
@@ -73,7 +75,7 @@ export class VideoRepository {
             },
           });
           const response = await this.client.send(scanCommand);
-          const videos = (response.Items || []) as Video[];
+          const videos = (response.Items || []).map(this.parseVideo) as Video[];
 
           // Sort by upload_start_timestamp descending
           return this.sortByUploadDate(videos);
@@ -96,6 +98,24 @@ export class VideoRepository {
         { originalError: error }
       );
     }
+  }
+
+  private parseVideo(video: any): Video {
+    // Parse configuration if it's a string
+    if (video.configuration && typeof video.configuration === "string") {
+      try {
+        video.configuration = JSON.parse(video.configuration);
+      } catch (error) {
+        logger.warn("Failed to parse video configuration", {
+          videoId: video.id,
+          configuration: video.configuration,
+          error,
+        });
+        // Remove invalid configuration
+        delete video.configuration;
+      }
+    }
+    return video as Video;
   }
 
   private sortByUploadDate(videos: Video[]): Video[] {

@@ -3,6 +3,7 @@ import {
   ErrorCode,
   normalizeError,
 } from "@/lib/types/errors";
+import { ProcessingConfiguration } from "@/lib/schemas/upload-schemas";
 import { apiClient } from "./api-client";
 
 export interface Video {
@@ -15,6 +16,7 @@ export interface Video {
   upload_start_timestamp?: string;
   processing_start_timestamp?: string;
   processing_end_timestamp?: string;
+  configuration?: ProcessingConfiguration;
 }
 
 export class VideoService {
