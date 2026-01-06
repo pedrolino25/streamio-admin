@@ -52,11 +52,7 @@ export default function ProjectDetailPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
         <PageHeader
-          title={
-            project?.project_name || (
-              <span className="text-muted-foreground">Loading...</span>
-            )
-          }
+          title={project?.project_name}
           description={
             project
               ? `Manage videos and settings for ${project.project_name}`

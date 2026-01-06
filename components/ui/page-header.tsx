@@ -6,11 +6,11 @@
  * Responsive design for mobile and desktop.
  */
 
-import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
 
 interface PageHeaderProps {
-  title: string;
+  title?: string;
   description?: string;
   actions?: ReactNode;
   className?: string;
@@ -23,17 +23,14 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div
-      className={cn(
-        "border-b border-border bg-card",
-        className
-      )}
-    >
+    <div className={cn("border-b border-border bg-card", className)}>
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              {title}
+              {title || (
+                <span className="text-muted-foreground">Loading...</span>
+              )}
             </h1>
             {description && (
               <p className="mt-1.5 text-sm text-muted-foreground">
