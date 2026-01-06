@@ -14,8 +14,9 @@ import {
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Project } from "@/lib/services/project-service";
 import { formatDate } from "@/lib/utils/date-utils";
-import { Check, Copy, FolderPlus, Play, Upload } from "lucide-react";
+import { Check, Copy, FolderPlus, Play, Upload, ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { DeleteProjectDialog } from "./delete-project-dialog";
 import { UploadTestDialog } from "./upload-test-dialog";
 import { VideoPlaybackTestDialog } from "./video-playback-test-dialog";
@@ -27,6 +28,7 @@ interface ProjectsTableProps {
 
 export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
   const { copyToClipboard, copiedId } = useClipboard();
+  const router = useRouter();
   const [testPlaybackProjectId, setTestPlaybackProjectId] = useState<
     string | null
   >(null);
@@ -62,7 +64,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
               <TableHead className="h-12 px-4 font-semibold sm:px-6">
                 Created
               </TableHead>
-              <TableHead className="h-12 w-[100px] px-4 font-semibold text-right sm:px-6">
+              <TableHead className="h-12 w-[200px] px-4 font-semibold text-right sm:px-6">
                 Actions
               </TableHead>
             </TableRow>
@@ -124,6 +126,16 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                       variant="outline"
                       size="sm"
                       onClick={() =>
+                        router.push(`/projects/${project.project_id}`)
+                      }
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
                         setTestPlaybackProjectId(project.project_id)
                       }
                     >
@@ -166,6 +178,16 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/projects/${project.project_id}`)
+                    }
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

@@ -146,6 +146,49 @@ export class ProjectService {
     }
   }
 
+  async getProjectById(
+    idToken: string,
+    projectId: string
+  ): Promise<Project> {
+    try {
+      if (!projectId?.trim()) {
+        throw new ApplicationError(
+          ErrorCode.VALIDATION_ERROR,
+          "Project ID is required"
+        );
+      }
+
+      return await apiClient.get<Project>(
+        `/api/projects/${projectId}`,
+        idToken
+      );
+    } catch (error) {
+      const normalizedError = normalizeError(error);
+
+      if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
+        throw new ApplicationError(
+          ErrorCode.UNAUTHORIZED,
+          "Your session has expired. Please sign in again.",
+          { details: normalizedError.details }
+        );
+      }
+
+      if (normalizedError.code === ErrorCode.NOT_FOUND) {
+        throw new ApplicationError(
+          ErrorCode.PROJECT_NOT_FOUND,
+          "Project not found",
+          { details: normalizedError.details }
+        );
+      }
+
+      throw new ApplicationError(
+        ErrorCode.OPERATION_FAILED,
+        "Failed to fetch project. Please try again later.",
+        { details: normalizedError.message, originalError: error }
+      );
+    }
+  }
+
   async projectNameExists(
     idToken: string,
     projectName: string

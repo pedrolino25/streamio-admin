@@ -68,7 +68,6 @@ export function SignedUrlProvider({
       }
 
       const result: SignedUrlResponse = await response.json();
-      console.log("result", result);
       setBaseUrl(result.baseUrl);
       setQueryParams(result.queryParams);
       setExpiresAt(result.expiresAt || Date.now() + DEFAULT_EXPIRATION);

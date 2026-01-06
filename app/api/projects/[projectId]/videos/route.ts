@@ -1,8 +1,5 @@
 import { requireAuth } from "@/lib/auth-server";
-import {
-  deleteProject,
-  getAllProjects,
-} from "@/lib/repositories/project-repository-factory";
+import { getVideosByProjectId } from "@/lib/repositories/video-repository-factory";
 import { logger } from "@/lib/services/logger";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
 import { NextRequest, NextResponse } from "next/server";
@@ -44,40 +41,9 @@ export async function GET(
       );
     }
 
-    const projects = await getAllProjects(token);
-    const project = projects.find((p) => p.project_id === projectId.trim());
+    const videos = await getVideosByProjectId(projectId, token);
 
-    if (!project) {
-      throw new ApplicationError(
-        ErrorCode.NOT_FOUND,
-        "Project not found"
-      );
-    }
-
-    return NextResponse.json(project);
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
-) {
-  try {
-    const { token } = await requireAuth(request);
-    const { projectId } = await params;
-
-    if (!projectId?.trim()) {
-      throw new ApplicationError(
-        ErrorCode.VALIDATION_ERROR,
-        "Project ID is required"
-      );
-    }
-
-    await deleteProject(projectId.trim(), token);
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(videos);
   } catch (error) {
     return handleApiError(error);
   }
