@@ -1,4 +1,5 @@
 import { requireAuth } from "@/lib/auth-server";
+import { getAllProjects } from "@/lib/repositories/project-repository-factory";
 import { getVideosByProjectId } from "@/lib/repositories/video-repository-factory";
 import { logger } from "@/lib/services/logger";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
@@ -28,20 +29,36 @@ function handleApiError(error: unknown): NextResponse {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectName: string }> }
 ) {
   try {
     const { token } = await requireAuth(request);
-    const { projectId } = await params;
+    const { projectName } = await params;
 
-    if (!projectId?.trim()) {
+    if (!projectName?.trim()) {
       throw new ApplicationError(
         ErrorCode.VALIDATION_ERROR,
-        "Project ID is required"
+        "Project name is required"
       );
     }
 
-    const videos = await getVideosByProjectId(projectId, token);
+    const decodedName = decodeURIComponent(projectName.trim());
+    const projects = await getAllProjects(token);
+    
+    const project =
+      projects.find(
+        (p) => p.project_name?.toLowerCase() === decodedName.toLowerCase()
+      ) || projects.find((p) => p.project_id === decodedName);
+
+    if (!project) {
+      throw new ApplicationError(
+        ErrorCode.PROJECT_NOT_FOUND,
+        "Project not found"
+      );
+    }
+
+    const projectIdentifier = project.project_name || project.project_id;
+    const videos = await getVideosByProjectId(projectIdentifier, token);
 
     return NextResponse.json(videos);
   } catch (error) {

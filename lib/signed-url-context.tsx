@@ -3,6 +3,7 @@
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -30,8 +31,8 @@ const SignedUrlContext = createContext<SignedUrlContextType | undefined>(
 );
 
 const SIGNED_URL_ENDPOINT = "https://api.stream-io.cloud/presigned-play-url";
-const REFRESH_BUFFER = 1 * 60 * 1000; // 1 minutes before expiration
-const DEFAULT_EXPIRATION = 10 * 60 * 1000; // 10 minutes
+const REFRESH_BUFFER = 1 * 60 * 1000;
+const DEFAULT_EXPIRATION = 10 * 60 * 1000;
 
 export function SignedUrlProvider({
   children,
@@ -46,11 +47,13 @@ export function SignedUrlProvider({
   const [error, setError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const loadingRef = useRef(false);
 
-  const fetchSignedUrl = async () => {
-    if (!apiKey || loading) return;
+  const fetchSignedUrl = useCallback(async () => {
+    if (!apiKey || loadingRef.current) return;
 
     try {
+      loadingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -77,16 +80,16 @@ export function SignedUrlProvider({
       setError(message);
       logger.error("Error fetching signed URL", err);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  };
+  }, [apiKey]);
 
   useEffect(() => {
     if (apiKey) {
       fetchSignedUrl();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey]);
+  }, [apiKey, fetchSignedUrl]);
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -102,8 +105,7 @@ export function SignedUrlProvider({
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expiresAt, apiKey]);
+  }, [expiresAt, apiKey, fetchSignedUrl]);
 
   const value = useMemo(
     () => ({
@@ -113,8 +115,7 @@ export function SignedUrlProvider({
       error,
       refresh: () => fetchSignedUrl(),
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [baseUrl, queryParams, loading, error]
+    [baseUrl, queryParams, loading, error, fetchSignedUrl]
   );
 
   return (

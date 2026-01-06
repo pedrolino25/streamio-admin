@@ -1,4 +1,5 @@
-import { apiClient, ApiError } from "./api-client";
+import { ApplicationError } from "@/lib/types/errors";
+import { apiClient } from "./api-client";
 
 export interface WebhookTestRequest {
   webhookUrl: string;
@@ -10,29 +11,27 @@ export interface WebhookTestResponse {
   error?: string;
 }
 
-export class WebhookService {
-  /**
-   * Tests a webhook URL
-   */
-  async testWebhook(webhookUrl: string): Promise<WebhookTestResponse> {
-    try {
-      return await apiClient.postUnauthenticated<WebhookTestResponse>(
-        "/api/webhook-test",
-        { webhookUrl: webhookUrl.trim() }
+export async function testWebhook(
+  webhookUrl: string
+): Promise<WebhookTestResponse> {
+  try {
+    return await apiClient.postUnauthenticated<WebhookTestResponse>(
+      "/api/webhook-test",
+      { webhookUrl: webhookUrl.trim() }
+    );
+  } catch (error) {
+    if (error instanceof ApplicationError) {
+      throw new Error(
+        error.details || error.message || "Webhook test failed"
       );
-    } catch (error) {
-      if (error && typeof error === "object" && "error" in error) {
-        const apiError = error as ApiError;
-        throw new Error(
-          apiError.details || apiError.error || "Webhook test failed"
-        );
-      }
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error("Webhook test failed");
     }
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Webhook test failed");
   }
 }
 
-export const webhookService = new WebhookService();
+export const webhookService = {
+  testWebhook,
+};

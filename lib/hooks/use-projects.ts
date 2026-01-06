@@ -1,62 +1,95 @@
 import { useAuth } from "@/lib/auth-context";
-import { Project, projectService } from "@/lib/services/project-service";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  CreateProjectRequest,
+  useCreateProjectMutation,
+  useDeleteProjectMutation,
+  useGetProjectsQuery,
+} from "@/lib/store/api";
+import { ApplicationError, ErrorCode } from "@/lib/types/errors";
+import {
+  extractErrorMessage,
+  transformRtkQueryError,
+} from "@/lib/utils/error-extractor";
+import { skipToken } from "@reduxjs/toolkit/query";
 
-interface UseProjectsReturn {
-  projects: Project[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-export function useProjects(): UseProjectsReturn {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function useProjects() {
   const { session } = useAuth();
-  const idTokenRef = useRef<string | null>(null);
+  const token = session?.idToken || null;
 
-  const fetchProjects = useCallback(async () => {
-    const currentToken = session?.idToken;
-
-    if (!currentToken) {
-      setLoading(false);
-      setProjects([]);
-      setError(null);
-      idTokenRef.current = null;
-      return;
-    }
-
-    if (idTokenRef.current === currentToken) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      idTokenRef.current = currentToken;
-
-      const data = await projectService.getAllProjects(currentToken);
-      setProjects(data);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch projects";
-      setError(errorMessage);
-      setProjects([]);
-      idTokenRef.current = null;
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.idToken]);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  const {
+    data: projects = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useGetProjectsQuery(token || skipToken);
 
   return {
     projects,
     loading,
-    error,
-    refetch: fetchProjects,
+    error: extractErrorMessage(error),
+    refetch: async () => {
+      await refetch();
+    },
+  };
+}
+
+export function useProjectMutations() {
+  const { session } = useAuth();
+  const token = session?.idToken || null;
+
+  const [
+    createProjectMutation,
+    { isLoading: createLoading, error: createError, reset: resetCreate },
+  ] = useCreateProjectMutation();
+  const [
+    deleteProjectMutation,
+    { isLoading: deleteLoading, error: deleteError, reset: resetDelete },
+  ] = useDeleteProjectMutation();
+
+  const createProject = async (data: CreateProjectRequest) => {
+    if (!token) {
+      throw new ApplicationError(
+        ErrorCode.UNAUTHORIZED,
+        "You must be signed in to perform this action",
+        { statusCode: 401 }
+      );
+    }
+    try {
+      await createProjectMutation({ data, token }).unwrap();
+    } catch (err) {
+      throw transformRtkQueryError(err);
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    if (!token) {
+      throw new ApplicationError(
+        ErrorCode.UNAUTHORIZED,
+        "You must be signed in to perform this action",
+        { statusCode: 401 }
+      );
+    }
+    try {
+      await deleteProjectMutation({ projectId, token }).unwrap();
+    } catch (err) {
+      throw transformRtkQueryError(err);
+    }
+  };
+
+  const getError = (): ApplicationError | null => {
+    const error = createError || deleteError;
+    if (!error) return null;
+    return transformRtkQueryError(error);
+  };
+
+  return {
+    createProject,
+    deleteProject,
+    loading: createLoading || deleteLoading,
+    error: getError(),
+    clearError: () => {
+      resetCreate();
+      resetDelete();
+    },
   };
 }

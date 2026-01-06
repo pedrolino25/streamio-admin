@@ -6,6 +6,7 @@ import {
   PutCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { validateTableName } from "@/lib/utils/validation";
 
 export interface Project {
   project_id: string;
@@ -19,125 +20,127 @@ export interface ProjectRepositoryConfig {
   client: DynamoDBDocumentClient;
 }
 
-export class ProjectRepository {
-  private readonly tableName: string;
-  private readonly client: DynamoDBDocumentClient;
+export async function findAll(
+  config: ProjectRepositoryConfig
+): Promise<Project[]> {
+  validateTableName(config.tableName, "PROJECTS_TABLE");
 
-  constructor(config: ProjectRepositoryConfig) {
-    if (!config.tableName?.trim()) {
-      throw new ApplicationError(
-        ErrorCode.VALIDATION_ERROR,
-        "PROJECTS_TABLE environment variable is not set",
-        { details: "Please configure it in your .env.local file." }
-      );
+  try {
+    const command = new ScanCommand({
+      TableName: config.tableName,
+    });
+
+    const response = await config.client.send(command);
+    return (response.Items || []) as Project[];
+  } catch (error) {
+    logger.error("Failed to fetch projects from DynamoDB", error, {
+      tableName: config.tableName,
+    });
+
+    if (error instanceof ApplicationError) {
+      throw error;
     }
-    this.tableName = config.tableName;
-    this.client = config.client;
+
+    throw new ApplicationError(
+      ErrorCode.SERVER_ERROR,
+      "Failed to retrieve projects",
+      { originalError: error }
+    );
   }
+}
 
-  async findAll(): Promise<Project[]> {
-    try {
-      const command = new ScanCommand({
-        TableName: this.tableName,
-      });
+export async function create(
+  config: ProjectRepositoryConfig,
+  project: Project
+): Promise<void> {
+  validateTableName(config.tableName, "PROJECTS_TABLE");
 
-      const response = await this.client.send(command);
-      return (response.Items || []) as Project[];
-    } catch (error) {
-      logger.error("Failed to fetch projects from DynamoDB", error, {
-        tableName: this.tableName,
-      });
+  try {
+    const command = new PutCommand({
+      TableName: config.tableName,
+      Item: {
+        ...project,
+        created_at: project.created_at || new Date().toISOString(),
+      },
+    });
 
-      if (error instanceof ApplicationError) {
-        throw error;
-      }
+    await config.client.send(command);
+  } catch (error) {
+    logger.error("Failed to create project in DynamoDB", error, {
+      tableName: config.tableName,
+      projectId: project.project_id,
+    });
 
-      throw new ApplicationError(
-        ErrorCode.SERVER_ERROR,
-        "Failed to retrieve projects",
-        { originalError: error }
-      );
+    if (error instanceof ApplicationError) {
+      throw error;
     }
+
+    throw new ApplicationError(
+      ErrorCode.SERVER_ERROR,
+      "Failed to create project",
+      { originalError: error }
+    );
   }
+}
 
-  async create(project: Project): Promise<void> {
-    try {
-      const command = new PutCommand({
-        TableName: this.tableName,
-        Item: {
-          ...project,
-          created_at: project.created_at || new Date().toISOString(),
-        },
-      });
+export async function deleteById(
+  config: ProjectRepositoryConfig,
+  projectId: string
+): Promise<void> {
+  validateTableName(config.tableName, "PROJECTS_TABLE");
 
-      await this.client.send(command);
-    } catch (error) {
-      logger.error("Failed to create project in DynamoDB", error, {
-        tableName: this.tableName,
-        projectId: project.project_id,
-      });
+  try {
+    const command = new DeleteCommand({
+      TableName: config.tableName,
+      Key: {
+        project_id: projectId,
+      },
+    });
 
-      if (error instanceof ApplicationError) {
-        throw error;
-      }
+    await config.client.send(command);
+  } catch (error) {
+    logger.error("Failed to delete project from DynamoDB", error, {
+      tableName: config.tableName,
+      projectId,
+    });
 
-      throw new ApplicationError(
-        ErrorCode.SERVER_ERROR,
-        "Failed to create project",
-        { originalError: error }
-      );
+    if (error instanceof ApplicationError) {
+      throw error;
     }
+
+    throw new ApplicationError(
+      ErrorCode.SERVER_ERROR,
+      "Failed to delete project",
+      { originalError: error }
+    );
   }
+}
 
-  async deleteById(projectId: string): Promise<void> {
-    try {
-      const command = new DeleteCommand({
-        TableName: this.tableName,
-        Key: {
-          project_id: projectId,
-        },
-      });
+export async function nameExists(
+  config: ProjectRepositoryConfig,
+  projectName: string
+): Promise<boolean> {
+  validateTableName(config.tableName, "PROJECTS_TABLE");
 
-      await this.client.send(command);
-    } catch (error) {
-      logger.error("Failed to delete project from DynamoDB", error, {
-        tableName: this.tableName,
-        projectId,
-      });
+  try {
+    const command = new ScanCommand({
+      TableName: config.tableName,
+      FilterExpression: "attribute_exists(project_name)",
+    });
 
-      if (error instanceof ApplicationError) {
-        throw error;
-      }
+    const response = await config.client.send(command);
+    if (!response.Items) return false;
 
-      throw new ApplicationError(
-        ErrorCode.SERVER_ERROR,
-        "Failed to delete project",
-        { originalError: error }
-      );
-    }
-  }
+    const lowerProjectName = projectName.toLowerCase();
+    return response.Items.some(
+      (item) => item.project_name?.toLowerCase() === lowerProjectName
+    );
+  } catch (error) {
+    logger.error("Failed to check project name existence", error, {
+      tableName: config.tableName,
+      projectName,
+    });
 
-  async nameExists(projectName: string): Promise<boolean> {
-    try {
-      const command = new ScanCommand({
-        TableName: this.tableName,
-        FilterExpression: "attribute_exists(project_name)",
-      });
-
-      const response = await this.client.send(command);
-      if (!response.Items) return false;
-
-      const lowerProjectName = projectName.toLowerCase();
-      return response.Items.some(
-        (item) => item.project_name?.toLowerCase() === lowerProjectName
-      );
-    } catch (error) {
-      logger.error("Failed to check project name existence", error, {
-        tableName: this.tableName,
-        projectName,
-      });
-
-      return false;
-    }
+    return false;
   }
 }

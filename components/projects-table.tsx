@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Project } from "@/lib/services/project-service";
+import { encodeProjectName } from "@/lib/utils/project-url";
 import { formatDate } from "@/lib/utils/date-utils";
 import { ExternalLink, FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -76,7 +77,11 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        router.push(`/projects/${project.project_id}`)
+                        router.push(
+                          `/projects/${encodeProjectName(
+                            project.project_name || project.project_id
+                          )}`
+                        )
                       }
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
@@ -114,7 +119,11 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      router.push(`/projects/${project.project_id}`)
+                      router.push(
+                        `/projects/${encodeProjectName(
+                          project.project_name || project.project_id
+                        )}`
+                      )
                     }
                   >
                     <ExternalLink className="mr-2 h-4 w-4" />

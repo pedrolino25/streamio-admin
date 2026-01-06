@@ -20,6 +20,7 @@ import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { useProject } from "@/lib/hooks/use-project";
 import { useVideos } from "@/lib/hooks/use-videos";
 import { formatDate } from "@/lib/utils/date-utils";
+import { decodeProjectName } from "@/lib/utils/project-url";
 import { ArrowLeft, Check, Copy, Upload, Webhook } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -27,21 +28,44 @@ import { useState } from "react";
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const projectId = params.projectId as string;
+
+  const projectName = params?.projectName
+    ? decodeProjectName(params.projectName as string)
+    : "";
+
   const {
     project,
     loading: projectLoading,
     error: projectError,
-  } = useProject(projectId);
+  } = useProject(projectName);
   const {
     videos,
     loading: videosLoading,
     error: videosError,
     refetch,
-  } = useVideos(project?.project_name || "");
+  } = useVideos(projectName);
   const { copyToClipboard, copiedId } = useClipboard();
   const [testUploadOpen, setTestUploadOpen] = useState(false);
   const [testWebhookOpen, setTestWebhookOpen] = useState(false);
+
+  if (!params?.projectName) {
+    return (
+      <ProtectedRoute>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <ErrorMessage message="Project name is required" />
+            <Button
+              variant="outline"
+              onClick={() => router.push("/")}
+              className="mt-4"
+            >
+              Back to Projects
+            </Button>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   const loading = projectLoading || videosLoading;
   const error = projectError || videosError;

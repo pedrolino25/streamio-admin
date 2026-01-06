@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { useToast } from "@/components/ui/toast-container";
-import { useProjectMutations } from "@/lib/hooks/use-project-mutations";
+import { useProjectMutations } from "@/lib/hooks/use-projects";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-container";
-import { useProjectMutations } from "@/lib/hooks/use-project-mutations";
+import { useProjectMutations } from "@/lib/hooks/use-projects";
 import {
   projectFormSchema,
   ProjectFormValues,

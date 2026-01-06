@@ -31,21 +31,26 @@ function handleApiError(error: unknown): NextResponse {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectName: string }> }
 ) {
   try {
     const { token } = await requireAuth(request);
-    const { projectId } = await params;
+    const { projectName } = await params;
 
-    if (!projectId?.trim()) {
+    if (!projectName?.trim()) {
       throw new ApplicationError(
         ErrorCode.VALIDATION_ERROR,
-        "Project ID is required"
+        "Project name is required"
       );
     }
 
+    const decodedName = decodeURIComponent(projectName.trim());
     const projects = await getAllProjects(token);
-    const project = projects.find((p) => p.project_id === projectId.trim());
+    
+    const project =
+      projects.find(
+        (p) => p.project_name?.toLowerCase() === decodedName.toLowerCase()
+      ) || projects.find((p) => p.project_id === decodedName);
 
     if (!project) {
       throw new ApplicationError(
@@ -62,20 +67,35 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectName: string }> }
 ) {
   try {
     const { token } = await requireAuth(request);
-    const { projectId } = await params;
+    const { projectName } = await params;
 
-    if (!projectId?.trim()) {
+    if (!projectName?.trim()) {
       throw new ApplicationError(
         ErrorCode.VALIDATION_ERROR,
-        "Project ID is required"
+        "Project name is required"
       );
     }
 
-    await deleteProject(projectId.trim(), token);
+    const decodedName = decodeURIComponent(projectName.trim());
+    const projects = await getAllProjects(token);
+    
+    const project =
+      projects.find(
+        (p) => p.project_name?.toLowerCase() === decodedName.toLowerCase()
+      ) || projects.find((p) => p.project_id === decodedName);
+
+    if (!project) {
+      throw new ApplicationError(
+        ErrorCode.PROJECT_NOT_FOUND,
+        "Project not found"
+      );
+    }
+
+    await deleteProject(project.project_id, token);
 
     return NextResponse.json({ success: true });
   } catch (error) {

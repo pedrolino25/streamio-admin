@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth-server";
 import { Project } from "@/lib/repositories/project-repository";
 import {
-  createProjectRepositoryWithAuth,
+  createProject,
   getAllProjects,
   projectNameExists,
 } from "@/lib/repositories/project-repository-factory";
@@ -105,8 +105,7 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
     };
 
-    const repository = createProjectRepositoryWithAuth(token);
-    await repository.create(project);
+    await createProject(project, token);
 
     return NextResponse.json(project, { status: 201 });
   } catch (error) {

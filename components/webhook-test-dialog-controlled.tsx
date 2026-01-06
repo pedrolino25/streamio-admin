@@ -30,7 +30,7 @@ import {
   webhookTestSchema,
   WebhookTestFormValues,
 } from "@/lib/schemas/webhook-schemas";
-import { webhookService } from "@/lib/services/webhook-service";
+import { testWebhook } from "@/lib/services/webhook-service";
 
 interface WebhookTestDialogControlledProps {
   open: boolean;
@@ -70,7 +70,7 @@ export function WebhookTestDialogControlled({
     setStatusCode(null);
 
     try {
-      const result = await webhookService.testWebhook(values.webhookUrl);
+      const result = await testWebhook(values.webhookUrl);
       setStatusCode(result.status);
       setResponse(result.response);
       setSuccess(result.status === 200);
