@@ -1,17 +1,18 @@
 import * as z from "zod";
 
 export const projectFormSchema = z.object({
-  project_name: z
+  projectName: z
     .string()
     .min(1, "Project name is required")
     .regex(
       /^[a-zA-Z0-9-]+$/,
       "Project name can only contain letters, numbers, and hyphens. Spaces are not allowed."
     ),
-  webhook_url: z
+  webhookUrl: z
     .string()
-    .min(1, "Webhook URL is required")
-    .url("Must be a valid URL"),
+    .url("Must be a valid URL")
+    .optional()
+    .or(z.literal("")),
 });
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>;

@@ -31,34 +31,21 @@ function ProcessingTimeDisplay({
   startTimestamp,
   endTimestamp,
 }: {
-  startTimestamp?: string;
-  endTimestamp?: string;
+  startTimestamp?: string | number | null;
+  endTimestamp?: string | number | null;
 }) {
-  const [elapsedTime, setElapsedTime] = useState<string>("—");
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    if (!startTimestamp) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setElapsedTime("—");
-      return;
-    }
-
-    if (endTimestamp) {
-      // Processing finished - show final duration
-      setElapsedTime(formatProcessingDuration(startTimestamp, endTimestamp));
+    if (!startTimestamp || endTimestamp) {
+      // No processing or finished - no need to update
       return;
     }
 
     // Processing ongoing - update elapsed time periodically
-    const updateElapsedTime = () => {
-      setElapsedTime(formatElapsedProcessingTime(startTimestamp));
-    };
-
-    // Update immediately
-    updateElapsedTime();
-
-    // Update every second
-    const interval = setInterval(updateElapsedTime, 1000);
+    const interval = setInterval(() => {
+      setTick((prev) => prev + 1);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [startTimestamp, endTimestamp]);
@@ -68,15 +55,17 @@ function ProcessingTimeDisplay({
   }
 
   if (endTimestamp) {
-    // Processing finished
-    return <span>{elapsedTime}</span>;
+    // Processing finished - compute directly
+    return (
+      <span>{formatProcessingDuration(startTimestamp, endTimestamp)}</span>
+    );
   }
 
-  // Processing ongoing
+  // Processing ongoing - compute on each render
   return (
     <span className="flex items-center gap-2">
       <LoadingSpinner size="sm" />
-      {elapsedTime}
+      {formatElapsedProcessingTime(startTimestamp)}
     </span>
   );
 }
@@ -95,7 +84,8 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
   const getStatusVariant = (
     status: Video["status"]
   ): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
+    const statusUpper = status.toUpperCase();
+    switch (statusUpper) {
       case "PROCESSED":
         return "default";
       case "PROCESSING":
@@ -221,12 +211,12 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                       <code className="max-w-xs truncate rounded bg-muted px-2 py-1 font-mono text-xs text-foreground sm:max-w-md">
                         {video.path}
                       </code>
-                      {video.status === "PROCESSED" && (
+                      {video.status.toUpperCase() === "PROCESSED" && (
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                          onClick={() => handlePlayVideo(video.path!)}
+                          onClick={() => handlePlayVideo(video.path)}
                           title="Play video"
                           aria-label={`Play video ${video.path}`}
                         >
@@ -239,18 +229,18 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-foreground sm:px-6">
-                  {formatVideoTime(video.video_time)}
+                  {formatVideoTime(video.videoTime)}
                 </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-foreground sm:px-6">
-                  {formatFileSize(video.file_size)}
+                  {formatFileSize(video.fileSize)}
                 </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-muted-foreground sm:px-6">
-                  {formatDate(video.upload_start_timestamp)}
+                  {formatDate(video.uploadStartTimestamp)}
                 </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-muted-foreground sm:px-6">
                   <ProcessingTimeDisplay
-                    startTimestamp={video.processing_start_timestamp}
-                    endTimestamp={video.processing_end_timestamp}
+                    startTimestamp={video.processingStartTimestamp}
+                    endTimestamp={video.processingEndTimestamp}
                   />
                 </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-muted-foreground sm:px-6">
@@ -293,12 +283,12 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                     <code className="flex-1 break-all rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
                       {video.path}
                     </code>
-                    {video.status === "PROCESSED" && (
+                    {video.status.toUpperCase() === "PROCESSED" && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                        onClick={() => handlePlayVideo(video.path!)}
+                        onClick={() => handlePlayVideo(video.path)}
                         title="Play video"
                         aria-label={`Play video ${video.path}`}
                       >
@@ -314,7 +304,7 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                     Duration
                   </p>
                   <p className="text-sm text-foreground">
-                    {formatVideoTime(video.video_time)}
+                    {formatVideoTime(video.videoTime)}
                   </p>
                 </div>
                 <div>
@@ -322,7 +312,7 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                     File Size
                   </p>
                   <p className="text-sm text-foreground">
-                    {formatFileSize(video.file_size)}
+                    {formatFileSize(video.fileSize)}
                   </p>
                 </div>
               </div>
@@ -331,18 +321,18 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                   Upload Started
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDate(video.upload_start_timestamp)}
+                  {formatDate(video.uploadStartTimestamp)}
                 </p>
               </div>
-              {video.processing_start_timestamp && (
+              {video.processingStartTimestamp && (
                 <div>
                   <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                     Processing
                   </p>
                   <p className="text-sm text-muted-foreground">
                     <ProcessingTimeDisplay
-                      startTimestamp={video.processing_start_timestamp}
-                      endTimestamp={video.processing_end_timestamp}
+                      startTimestamp={video.processingStartTimestamp}
+                      endTimestamp={video.processingEndTimestamp}
                     />
                   </p>
                 </div>

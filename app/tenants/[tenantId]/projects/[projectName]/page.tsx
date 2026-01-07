@@ -18,6 +18,7 @@ import { VideosTable } from "@/components/videos-table";
 import { WebhookTestDialogControlled } from "@/components/webhook-test-dialog-controlled";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { useProject } from "@/lib/hooks/use-project";
+import { useTenants } from "@/lib/hooks/use-tenants";
 import { useVideos } from "@/lib/hooks/use-videos";
 import { formatDate } from "@/lib/utils/date-utils";
 import { decodeProjectName } from "@/lib/utils/project-url";
@@ -29,37 +30,42 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
 
+  const tenantId = params?.tenantId as string;
   const projectName = params?.projectName
     ? decodeProjectName(params.projectName as string)
     : "";
+
+  const { tenants } = useTenants();
+  const tenant = tenants.find((t) => t.id === tenantId);
+  const apiKey = tenant?.api_key || "";
 
   const {
     project,
     loading: projectLoading,
     error: projectError,
-  } = useProject(projectName);
+  } = useProject(projectName, apiKey);
   const {
     videos,
     loading: videosLoading,
     error: videosError,
     refetch,
-  } = useVideos(projectName);
+  } = useVideos(projectName, apiKey);
   const { copyToClipboard, copiedId } = useClipboard();
   const [testUploadOpen, setTestUploadOpen] = useState(false);
   const [testWebhookOpen, setTestWebhookOpen] = useState(false);
 
-  if (!params?.projectName) {
+  if (!params?.tenantId || !params?.projectName) {
     return (
       <ProtectedRoute>
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
-            <ErrorMessage message="Project name is required" />
+            <ErrorMessage message="Tenant ID and project name are required" />
             <Button
               variant="outline"
               onClick={() => router.push("/")}
               className="mt-4"
             >
-              Back to Projects
+              Back to Tenants
             </Button>
           </div>
         </div>
@@ -74,10 +80,10 @@ export default function ProjectDetailPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
         <PageHeader
-          title={project?.project_name}
+          title={project?.projectName}
           description={
             project
-              ? `Manage videos and settings for ${project.project_name}`
+              ? `Manage videos and settings for ${project.projectName}`
               : undefined
           }
           actions={
@@ -86,7 +92,7 @@ export default function ProjectDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push("/")}
+                onClick={() => router.push(`/tenants/${tenantId}`)}
                 className="gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -120,7 +126,6 @@ export default function ProjectDetailPage() {
             </div>
           ) : project ? (
             <div className="space-y-6">
-              {/* Project Information Card */}
               <Card className="border shadow-sm">
                 <CardHeader className="border-b bg-card px-4 py-4 sm:px-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -129,7 +134,7 @@ export default function ProjectDetailPage() {
                         Project Information
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        API key, webhook URL, and project details
+                        Project details and settings
                       </CardDescription>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -141,14 +146,16 @@ export default function ProjectDetailPage() {
                         <Upload className="mr-2 h-4 w-4" />
                         Upload Test
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTestWebhookOpen(true)}
-                      >
-                        <Webhook className="mr-2 h-4 w-4" />
-                        Webhook Test
-                      </Button>
+                      {project.webhookUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTestWebhookOpen(true)}
+                        >
+                          <Webhook className="mr-2 h-4 w-4" />
+                          Webhook Test
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -160,30 +167,26 @@ export default function ProjectDetailPage() {
                           Project Name
                         </label>
                         <p className="text-sm font-medium text-foreground">
-                          {project.project_name || (
-                            <span className="italic text-muted-foreground">
-                              Unnamed Project
-                            </span>
-                          )}
+                          {project.projectName}
                         </p>
                       </div>
                       <div>
                         <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                          API Key
+                          Project ID
                         </label>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 break-all rounded bg-muted px-3 py-2 font-mono text-xs text-foreground">
-                            {project.project_id}
+                            {project.id}
                           </code>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-9 w-9 shrink-0 p-0 hover:bg-muted"
-                            onClick={() => copyToClipboard(project.project_id)}
-                            title="Copy API key"
-                            aria-label={`Copy API key ${project.project_id}`}
+                            onClick={() => copyToClipboard(project.id)}
+                            title="Copy project ID"
+                            aria-label={`Copy project ID ${project.id}`}
                           >
-                            {copiedId === project.project_id ? (
+                            {copiedId === project.id ? (
                               <Check
                                 className="h-4 w-4 text-primary"
                                 aria-hidden="true"
@@ -200,9 +203,9 @@ export default function ProjectDetailPage() {
                         <label className="mb-2 block text-sm font-medium text-muted-foreground">
                           Webhook URL
                         </label>
-                        {project.webhook_url ? (
+                        {project.webhookUrl ? (
                           <code className="block break-all rounded bg-muted px-3 py-2 font-mono text-xs text-foreground">
-                            {project.webhook_url}
+                            {project.webhookUrl}
                           </code>
                         ) : (
                           <span className="text-sm text-muted-foreground">
@@ -215,7 +218,7 @@ export default function ProjectDetailPage() {
                           Created At
                         </label>
                         <p className="text-sm text-muted-foreground">
-                          {formatDate(project.created_at)}
+                          {formatDate(project.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -223,7 +226,6 @@ export default function ProjectDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Videos Card */}
               <Card className="border shadow-sm">
                 <CardHeader className="border-b bg-card px-4 py-4 sm:px-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -270,7 +272,7 @@ export default function ProjectDetailPage() {
                       </Button>
                     </div>
                   ) : (
-                    <VideosTable videos={videos} apiKey={project.project_id} />
+                    <VideosTable videos={videos} apiKey={apiKey} />
                   )}
                 </CardContent>
               </Card>
@@ -278,19 +280,19 @@ export default function ProjectDetailPage() {
           ) : null}
         </div>
 
-        {/* Test Dialogs */}
         {project && (
           <>
             <UploadTestDialog
               open={testUploadOpen}
               onOpenChange={setTestUploadOpen}
-              apiKey={project.project_id}
+              apiKey={apiKey}
+              projectName={projectName}
             />
-            {project.webhook_url && (
+            {project.webhookUrl && (
               <WebhookTestDialogControlled
                 open={testWebhookOpen}
                 onOpenChange={setTestWebhookOpen}
-                webhookUrl={project.webhook_url}
+                webhookUrl={project.webhookUrl}
               />
             )}
           </>

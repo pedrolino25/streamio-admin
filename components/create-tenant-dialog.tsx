@@ -22,61 +22,59 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-container";
-import { useProjectMutations } from "@/lib/hooks/use-projects";
+import { useTenantMutations } from "@/lib/hooks/use-tenants";
 import {
-  projectFormSchema,
-  ProjectFormValues,
-} from "@/lib/schemas/project-schemas";
+  tenantFormSchema,
+  TenantFormValues,
+} from "@/lib/schemas/tenant-schemas";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-interface CreateProjectDialogProps {
+interface CreateTenantDialogProps {
   onSuccess: () => void;
-  apiKey: string;
 }
 
-export function CreateProjectDialog({ onSuccess, apiKey }: CreateProjectDialogProps) {
+export function CreateTenantDialog({ onSuccess }: CreateTenantDialogProps) {
   const [open, setOpen] = useState(false);
   const {
-    createProject,
+    createTenant,
     loading,
     error: mutationError,
     clearError,
-  } = useProjectMutations();
+  } = useTenantMutations();
   const { success, error: showErrorToast } = useToast();
 
-  const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(projectFormSchema),
+  const form = useForm<TenantFormValues>({
+    resolver: zodResolver(tenantFormSchema),
     defaultValues: {
-      projectName: "",
-      webhookUrl: "",
+      organization: "",
     },
   });
 
   const handleError = (error: unknown) => {
     const appError = error instanceof ApplicationError ? error : null;
-    const errorMessage = appError?.message || "Failed to create project";
+    const errorMessage = appError?.message || "Failed to create tenant";
 
-    if (appError?.code === ErrorCode.PROJECT_EXISTS) {
-      showErrorToast("A project with this name already exists");
+    if (appError?.code === ErrorCode.CONFLICT) {
+      showErrorToast("A tenant with this organization name already exists");
     } else if (appError?.code === ErrorCode.UNAUTHORIZED) {
-      showErrorToast("Invalid API key. Please check your tenant API key.");
+      showErrorToast("Your session has expired. Please sign in again.");
     } else {
       showErrorToast(errorMessage);
     }
   };
 
-  const handleSubmit = async (values: ProjectFormValues) => {
+  const handleSubmit = async (values: TenantFormValues) => {
     clearError();
 
     try {
-      await createProject(values, apiKey);
+      await createTenant(values);
       setOpen(false);
       form.reset();
-      success("Project created successfully!");
+      success("Tenant created successfully!");
       onSuccess();
     } catch (error) {
       handleError(error);
@@ -96,70 +94,45 @@ export function CreateProjectDialog({ onSuccess, apiKey }: CreateProjectDialogPr
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button aria-label="Create new project">
+        <Button aria-label="Create new tenant">
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New Project
+          New Tenant
         </Button>
       </DialogTrigger>
       <DialogContent
         className="max-w-[95vw] sm:max-w-md"
-        aria-describedby="create-project-description"
+        aria-describedby="create-tenant-description"
       >
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
-              <DialogDescription id="create-project-description">
-                Create a new project for this tenant.
+              <DialogTitle>Create New Tenant</DialogTitle>
+              <DialogDescription id="create-tenant-description">
+                Create a new tenant to generate an API key for accessing the
+                Media Processing Platform.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <FormField
                 control={form.control}
-                name="projectName"
+                name="organization"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="projectName">Project Name</FormLabel>
+                    <FormLabel htmlFor="organization">Organization Name</FormLabel>
                     <FormControl>
                       <Input
-                        id="projectName"
-                        placeholder="my-project"
+                        id="organization"
+                        placeholder="My Organization"
                         {...field}
                         disabled={loading}
-                        aria-describedby="project-name-description project-name-error"
-                        aria-invalid={!!form.formState.errors.projectName}
+                        aria-describedby="organization-description organization-error"
+                        aria-invalid={!!form.formState.errors.organization}
                       />
                     </FormControl>
-                    <FormDescription id="project-name-description">
-                      A user-friendly name for this project (letters, numbers,
-                      and hyphens only, no spaces)
+                    <FormDescription id="organization-description">
+                      The name of your organization
                     </FormDescription>
-                    <FormMessage id="project-name-error" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="webhookUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel htmlFor="webhookUrl">Webhook URL (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        id="webhookUrl"
-                        type="url"
-                        placeholder="https://your-api.com/webhooks/video-processed"
-                        {...field}
-                        disabled={loading}
-                        aria-describedby="webhook-url-description webhook-url-error"
-                        aria-invalid={!!form.formState.errors.webhookUrl}
-                      />
-                    </FormControl>
-                    <FormDescription id="webhook-url-description">
-                      Optional webhook URL to receive notifications when videos are
-                      processed
-                    </FormDescription>
-                    <FormMessage id="webhook-url-error" />
+                    <FormMessage id="organization-error" />
                   </FormItem>
                 )}
               />
@@ -173,16 +146,16 @@ export function CreateProjectDialog({ onSuccess, apiKey }: CreateProjectDialogPr
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
                 disabled={loading}
-                aria-label="Cancel project creation"
+                aria-label="Cancel tenant creation"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={loading}
-                aria-label={loading ? "Creating project..." : "Create project"}
+                aria-label={loading ? "Creating tenant..." : "Create tenant"}
               >
-                {loading ? "Creating..." : "Create Project"}
+                {loading ? "Creating..." : "Create Tenant"}
               </Button>
             </DialogFooter>
           </form>
@@ -191,3 +164,4 @@ export function CreateProjectDialog({ onSuccess, apiKey }: CreateProjectDialogPr
     </Dialog>
   );
 }
+

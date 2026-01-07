@@ -3,41 +3,63 @@ import {
   ErrorCode,
   normalizeError,
 } from "@/lib/types/errors";
-import { apiClient } from "./api-client";
-import {
-  validateProjectId,
-  validateProjectName,
-  validateWebhookUrl,
-} from "@/lib/utils/validation";
+import { externalApiClient } from "./external-api-client";
 
 export interface Project {
-  project_id: string;
-  project_name?: string;
-  webhook_url?: string;
-  created_at?: string;
+  id: string;
+  tenantId: string;
+  projectName: string;
+  webhookUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProjectsResponse {
+  data: Project[];
+  count: number;
 }
 
 export interface CreateProjectRequest {
-  project_name: string;
-  webhook_url: string;
+  projectName: string;
+  webhookUrl?: string;
 }
 
 export interface CreateProjectResponse {
-  project_id: string;
-  project_name: string;
-  webhook_url: string;
+  id: string;
+  tenantId: string;
+  projectName: string;
+  webhookUrl?: string;
+  message: string;
 }
 
-export async function getAllProjects(idToken: string): Promise<Project[]> {
+export interface UpdateProjectRequest {
+  projectName: string;
+  webhookUrl?: string;
+}
+
+export interface UpdateProjectResponse {
+  id: string;
+  tenantId: string;
+  projectName: string;
+  webhookUrl?: string;
+  message: string;
+}
+
+export async function getAllProjects(apiKey: string): Promise<Project[]> {
   try {
-    return await apiClient.get<Project[]>("/api/projects", idToken);
+    console.log("getAllProjects", apiKey);
+    const response = await externalApiClient.get<ProjectsResponse>(
+      "/projects",
+      apiKey
+    );
+    return response.data || [];
   } catch (error) {
     const normalizedError = normalizeError(error);
 
     if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
       throw new ApplicationError(
         ErrorCode.UNAUTHORIZED,
-        "Your session has expired. Please sign in again.",
+        "Invalid API key. Please check your tenant API key.",
         { details: normalizedError.details }
       );
     }
@@ -58,17 +80,50 @@ export async function getAllProjects(idToken: string): Promise<Project[]> {
   }
 }
 
+export async function getProject(
+  apiKey: string,
+  projectName: string
+): Promise<Project> {
+  try {
+    return await externalApiClient.get<Project>(
+      `/project?projectName=${encodeURIComponent(projectName)}`,
+      apiKey
+    );
+  } catch (error) {
+    const normalizedError = normalizeError(error);
+
+    if (normalizedError.code === ErrorCode.NOT_FOUND) {
+      throw new ApplicationError(
+        ErrorCode.PROJECT_NOT_FOUND,
+        "Project not found",
+        { details: normalizedError.details }
+      );
+    }
+
+    if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
+      throw new ApplicationError(
+        ErrorCode.UNAUTHORIZED,
+        "Invalid API key. Please check your tenant API key.",
+        { details: normalizedError.details }
+      );
+    }
+
+    throw new ApplicationError(
+      ErrorCode.OPERATION_FAILED,
+      "Failed to fetch project. Please try again later.",
+      { details: normalizedError.message, originalError: normalizedError }
+    );
+  }
+}
+
 export async function createProject(
-  idToken: string,
+  apiKey: string,
   data: CreateProjectRequest
 ): Promise<CreateProjectResponse> {
   try {
-    validateProjectName(data.project_name);
-    validateWebhookUrl(data.webhook_url);
-
-    return await apiClient.post<CreateProjectResponse>(
-      "/api/projects",
-      idToken,
+    return await externalApiClient.post<CreateProjectResponse>(
+      "/project",
+      apiKey,
       data
     );
   } catch (error) {
@@ -89,27 +144,64 @@ export async function createProject(
     if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
       throw new ApplicationError(
         ErrorCode.UNAUTHORIZED,
-        "Your session has expired. Please sign in again.",
+        "Invalid API key. Please check your tenant API key.",
         { details: normalizedError.details }
       );
     }
 
     throw new ApplicationError(
       ErrorCode.OPERATION_FAILED,
-      `Failed to create project. Please try again.`,
+      "Failed to create project. Please try again.",
+      { details: normalizedError.message, originalError: normalizedError }
+    );
+  }
+}
+
+export async function updateProject(
+  apiKey: string,
+  data: UpdateProjectRequest
+): Promise<UpdateProjectResponse> {
+  try {
+    return await externalApiClient.put<UpdateProjectResponse>(
+      "/project",
+      apiKey,
+      data
+    );
+  } catch (error) {
+    const normalizedError = normalizeError(error);
+
+    if (normalizedError.code === ErrorCode.NOT_FOUND) {
+      throw new ApplicationError(
+        ErrorCode.PROJECT_NOT_FOUND,
+        "Project not found",
+        { details: normalizedError.details }
+      );
+    }
+
+    if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
+      throw new ApplicationError(
+        ErrorCode.UNAUTHORIZED,
+        "Invalid API key. Please check your tenant API key.",
+        { details: normalizedError.details }
+      );
+    }
+
+    throw new ApplicationError(
+      ErrorCode.OPERATION_FAILED,
+      "Failed to update project. Please try again.",
       { details: normalizedError.message, originalError: normalizedError }
     );
   }
 }
 
 export async function deleteProject(
-  idToken: string,
-  projectId: string
+  apiKey: string,
+  projectName: string
 ): Promise<void> {
   try {
-    validateProjectId(projectId);
-
-    await apiClient.delete(`/api/projects/${projectId}`, idToken);
+    await externalApiClient.delete("/project", apiKey, {
+      projectName,
+    });
   } catch (error) {
     const normalizedError = normalizeError(error);
 
@@ -124,67 +216,15 @@ export async function deleteProject(
     if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
       throw new ApplicationError(
         ErrorCode.UNAUTHORIZED,
-        "Your session has expired. Please sign in again.",
+        "Invalid API key. Please check your tenant API key.",
         { details: normalizedError.details }
       );
     }
 
     throw new ApplicationError(
       ErrorCode.OPERATION_FAILED,
-      `Failed to delete project. Please try again.`,
+      "Failed to delete project. Please try again.",
       { details: normalizedError.message, originalError: normalizedError }
     );
-  }
-}
-
-export async function getProjectById(
-  idToken: string,
-  projectId: string
-): Promise<Project> {
-  try {
-    validateProjectId(projectId);
-
-    return await apiClient.get<Project>(
-      `/api/projects/${projectId}`,
-      idToken
-    );
-  } catch (error) {
-    const normalizedError = normalizeError(error);
-
-    if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
-      throw new ApplicationError(
-        ErrorCode.UNAUTHORIZED,
-        "Your session has expired. Please sign in again.",
-        { details: normalizedError.details }
-      );
-    }
-
-    if (normalizedError.code === ErrorCode.NOT_FOUND) {
-      throw new ApplicationError(
-        ErrorCode.PROJECT_NOT_FOUND,
-        "Project not found",
-        { details: normalizedError.details }
-      );
-    }
-
-    throw new ApplicationError(
-      ErrorCode.OPERATION_FAILED,
-      "Failed to fetch project. Please try again later.",
-      { details: normalizedError.message, originalError: normalizedError }
-    );
-  }
-}
-
-export async function projectNameExists(
-  idToken: string,
-  projectName: string
-): Promise<boolean> {
-  try {
-    const projects = await getAllProjects(idToken);
-    return projects.some(
-      (p) => p.project_name?.toLowerCase() === projectName.toLowerCase()
-    );
-  } catch {
-    return false;
   }
 }

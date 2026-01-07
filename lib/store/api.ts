@@ -1,38 +1,19 @@
-import { ProcessingConfiguration } from "@/lib/schemas/upload-schemas";
 import { mapHttpStatusToErrorCode } from "@/lib/services/error-transformer";
+import {
+  CreateProjectRequest,
+  CreateProjectResponse,
+  Project,
+  UpdateProjectRequest,
+  UpdateProjectResponse,
+} from "@/lib/services/project-service";
+import {
+  CreateTenantRequest,
+  CreateTenantResponse,
+  Tenant,
+} from "@/lib/services/tenant-service";
+import { Video } from "@/lib/services/video-service";
 import { ErrorCode } from "@/lib/types/errors";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
-export interface Project {
-  project_id: string;
-  project_name?: string;
-  webhook_url?: string;
-  created_at?: string;
-}
-
-export interface CreateProjectRequest {
-  project_name: string;
-  webhook_url: string;
-}
-
-export interface CreateProjectResponse {
-  project_id: string;
-  project_name: string;
-  webhook_url: string;
-}
-
-export interface Video {
-  id: string;
-  project_id: string;
-  path?: string;
-  status: "UPLOADING" | "PROCESSING" | "FAILED" | "PROCESSED";
-  video_time?: number;
-  file_size?: number;
-  upload_start_timestamp?: string;
-  processing_start_timestamp?: string;
-  processing_end_timestamp?: string;
-  configuration?: ProcessingConfiguration;
-}
 
 interface RtkQueryErrorData {
   code?: ErrorCode;
@@ -40,150 +21,249 @@ interface RtkQueryErrorData {
   details?: string;
 }
 
-const baseQuery = fetchBaseQuery({ baseUrl: "" });
+// External API - uses API keys
+const EXTERNAL_API_BASE_URL = "https://api.stream-io.cloud";
 
-const baseQueryWithAuth = async (
-  args: Parameters<typeof baseQuery>[0],
-  api: Parameters<typeof baseQuery>[1],
-  extraOptions: Parameters<typeof baseQuery>[2]
+// Internal API - uses auth tokens
+const internalApiBaseQuery = fetchBaseQuery({
+  baseUrl: "",
+});
+
+// Wrapper to transform X-Auth-Token to Authorization
+const internalApiBaseQueryWithTransform = async (
+  args: Parameters<typeof internalApiBaseQuery>[0],
+  api: Parameters<typeof internalApiBaseQuery>[1],
+  extraOptions: Parameters<typeof internalApiBaseQuery>[2]
 ) => {
   const fetchArgs = typeof args === "string" ? { url: args } : args;
-  const existingHeaders = fetchArgs?.headers;
-  const headers = new Headers(
-    existingHeaders instanceof Headers
-      ? existingHeaders
-      : existingHeaders
-      ? (existingHeaders as HeadersInit)
+  const queryHeaders = fetchArgs.headers;
+
+  // Extract token from headers (handle both Headers object and plain object)
+  let token: string | null = null;
+  if (queryHeaders instanceof Headers) {
+    token = queryHeaders.get("X-Auth-Token");
+  } else if (queryHeaders && typeof queryHeaders === "object") {
+    const headersObj = queryHeaders as Record<string, string>;
+    token = headersObj["X-Auth-Token"] || null;
+  }
+
+  // Create transformed headers
+  const transformedHeaders = new Headers(
+    queryHeaders instanceof Headers
+      ? queryHeaders
+      : queryHeaders
+      ? (queryHeaders as HeadersInit)
       : undefined
   );
-  const token = headers.get("X-Auth-Token");
 
-  if (!token) {
-    return {
-      error: {
-        status: 401,
-        data: {
-          code: ErrorCode.UNAUTHORIZED,
-          message: "Authentication token is required",
-        },
-      },
-    };
+  if (token) {
+    transformedHeaders.set("Authorization", `Bearer ${token}`);
+    transformedHeaders.delete("X-Auth-Token");
   }
+  transformedHeaders.set("Content-Type", "application/json");
 
-  headers.set("Authorization", `Bearer ${token}`);
-  headers.set("Content-Type", "application/json");
-  headers.delete("X-Auth-Token");
-
-  const result = await baseQuery({ ...fetchArgs, headers }, api, extraOptions);
-
-  if (result.error) {
-    const error = result.error;
-    const status =
-      "status" in error && typeof error.status === "number"
-        ? error.status
-        : 500;
-    const data = (
-      "data" in error ? error.data : null
-    ) as RtkQueryErrorData | null;
-
-    const errorCode = mapHttpStatusToErrorCode(status);
-    const errorMessage =
-      data?.message ||
-      (data && typeof data === "object" && "error" in data
-        ? String((data as { error?: string }).error)
-        : null) ||
-      `HTTP ${status}: Request failed`;
-
-    return {
-      error: {
-        status,
-        data: {
-          code: errorCode,
-          message: errorMessage,
-          details: data?.details,
-        },
-      },
-    };
-  }
-
-  return result;
+  return internalApiBaseQuery(
+    { ...fetchArgs, headers: transformedHeaders },
+    api,
+    extraOptions
+  );
 };
 
-export const api = createApi({
-  reducerPath: "api",
-  baseQuery: baseQueryWithAuth,
+// Error transformer for both APIs
+const transformError = <T = unknown>(result: { error?: unknown; data?: T }) => {
+  if (!result.error) {
+    return { data: result.data as T };
+  }
+
+  const error = result.error as { status?: number; data?: unknown };
+  const status =
+    "status" in error && typeof error.status === "number" ? error.status : 500;
+  const data = (
+    "data" in error ? error.data : null
+  ) as RtkQueryErrorData | null;
+
+  const errorCode = mapHttpStatusToErrorCode(status);
+  const errorMessage =
+    data?.message ||
+    (data && typeof data === "object" && "error" in data
+      ? String((data as { error?: string }).error)
+      : null) ||
+    `HTTP ${status}: Request failed`;
+
+  return {
+    error: {
+      status,
+      data: {
+        code: errorCode,
+        message: errorMessage,
+        details: data?.details,
+      },
+    },
+  };
+};
+
+export const externalApi = createApi({
+  reducerPath: "externalApi",
+  baseQuery: fetchBaseQuery({
+    baseUrl: EXTERNAL_API_BASE_URL,
+  }),
   tagTypes: ["Project", "Projects", "Videos"],
   endpoints: (builder) => ({
     getProjects: builder.query<Project[], string>({
-      query: (token) => ({
-        url: "/api/projects",
+      query: (apiKey) => ({
+        url: "/projects",
         headers: {
-          "X-Auth-Token": token,
+          "X-Api-Key": apiKey,
         },
       }),
+      transformResponse: (response: { data: Project[]; count: number }) =>
+        response.data || [],
       providesTags: ["Projects"],
     }),
 
-    getProject: builder.query<Project, { projectName: string; token: string }>({
-      query: ({ projectName, token }) => ({
-        url: `/api/projects/${encodeURIComponent(projectName)}`,
+    getProject: builder.query<Project, { projectName: string; apiKey: string }>(
+      {
+        query: ({ projectName, apiKey }) => ({
+          url: `/project?projectName=${encodeURIComponent(projectName)}`,
+          headers: {
+            "X-Api-Key": apiKey,
+          },
+        }),
+        providesTags: (result, error, { projectName }) => [
+          { type: "Project", id: projectName },
+        ],
+      }
+    ),
+
+    createProject: builder.mutation<
+      CreateProjectResponse,
+      { data: CreateProjectRequest; apiKey: string }
+    >({
+      query: ({ data, apiKey }) => ({
+        url: "/project",
+        method: "POST",
+        body: data,
         headers: {
-          "X-Auth-Token": token,
+          "X-Api-Key": apiKey,
         },
       }),
-      providesTags: (result, error, { projectName }) => [
+      invalidatesTags: ["Projects"],
+    }),
+
+    updateProject: builder.mutation<
+      UpdateProjectResponse,
+      { data: UpdateProjectRequest; apiKey: string }
+    >({
+      query: ({ data, apiKey }) => ({
+        url: "/project",
+        method: "PUT",
+        body: data,
+        headers: {
+          "X-Api-Key": apiKey,
+        },
+      }),
+      invalidatesTags: (result, error, { data }) => [
+        "Projects",
+        { type: "Project", id: data.projectName },
+      ],
+    }),
+
+    deleteProject: builder.mutation<
+      void,
+      { projectName: string; apiKey: string }
+    >({
+      query: ({ projectName, apiKey }) => ({
+        url: "/project",
+        method: "DELETE",
+        body: { projectName },
+        headers: {
+          "X-Api-Key": apiKey,
+        },
+      }),
+      invalidatesTags: (result, error, { projectName }) => [
+        "Projects",
         { type: "Project", id: projectName },
       ],
     }),
 
-    createProject: builder.mutation<
-      CreateProjectResponse,
-      { data: CreateProjectRequest; token: string }
+    getVideos: builder.query<Video[], { projectName: string; apiKey: string }>({
+      query: ({ projectName, apiKey }) => ({
+        url: `/videos?projectName=${encodeURIComponent(projectName)}`,
+        headers: {
+          "X-Api-Key": apiKey,
+        },
+      }),
+      transformResponse: (response: { data: Video[]; count: number }) =>
+        response.data || [],
+      providesTags: (result, error, { projectName }) => [
+        { type: "Videos", id: projectName },
+      ],
+    }),
+
+    deleteVideo: builder.mutation<void, { videoId: string; apiKey: string }>({
+      query: ({ videoId, apiKey }) => ({
+        url: "/video",
+        method: "DELETE",
+        body: { videoId },
+        headers: {
+          "X-Api-Key": apiKey,
+        },
+      }),
+      invalidatesTags: ["Videos"],
+    }),
+  }),
+});
+
+// Internal API slice - for Next.js API routes
+export const internalApi = createApi({
+  reducerPath: "internalApi",
+  baseQuery: async (args, api, extraOptions) => {
+    const result = await internalApiBaseQueryWithTransform(
+      args,
+      api,
+      extraOptions
+    );
+    return transformError(result);
+  },
+  tagTypes: ["Tenant", "Tenants"],
+  endpoints: (builder) => ({
+    getTenants: builder.query<Tenant[], string>({
+      query: (token) => ({
+        url: "/api/tenants",
+        headers: {
+          "X-Auth-Token": token,
+        },
+      }),
+      providesTags: ["Tenants"],
+    }),
+
+    createTenant: builder.mutation<
+      CreateTenantResponse,
+      { data: CreateTenantRequest; token: string }
     >({
       query: ({ data, token }) => ({
-        url: "/api/projects",
+        url: "/api/tenants",
         method: "POST",
         body: data,
         headers: {
           "X-Auth-Token": token,
         },
       }),
-      invalidatesTags: ["Projects"],
-    }),
-
-    deleteProject: builder.mutation<void, { projectId: string; token: string }>(
-      {
-        query: ({ projectId, token }) => ({
-          url: `/api/projects/${projectId}`,
-          method: "DELETE",
-          headers: {
-            "X-Auth-Token": token,
-          },
-        }),
-        invalidatesTags: (result, error, { projectId }) => [
-          "Projects",
-          { type: "Project", id: projectId },
-        ],
-      }
-    ),
-    getVideos: builder.query<Video[], { projectName: string; token: string }>({
-      query: ({ projectName, token }) => ({
-        url: `/api/projects/${encodeURIComponent(projectName)}/videos`,
-        headers: {
-          "X-Auth-Token": token,
-        },
-      }),
-      providesTags: (result, error, { projectName }) => [
-        { type: "Videos", id: projectName },
-      ],
+      invalidatesTags: ["Tenants"],
     }),
   }),
 });
 
+// Export hooks from external API
 export const {
   useGetProjectsQuery,
   useGetProjectQuery,
   useCreateProjectMutation,
+  useUpdateProjectMutation,
   useDeleteProjectMutation,
   useGetVideosQuery,
-} = api;
+  useDeleteVideoMutation,
+} = externalApi;
+
+// Export hooks from internal API
+export const { useGetTenantsQuery, useCreateTenantMutation } = internalApi;

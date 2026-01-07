@@ -30,6 +30,7 @@ const SignedUrlContext = createContext<SignedUrlContextType | undefined>(
   undefined
 );
 
+// All requests to api.stream-io.cloud require the API key in the x-api-key header
 const SIGNED_URL_ENDPOINT = "https://api.stream-io.cloud/presigned-play-url";
 const REFRESH_BUFFER = 1 * 60 * 1000;
 const DEFAULT_EXPIRATION = 10 * 60 * 1000;

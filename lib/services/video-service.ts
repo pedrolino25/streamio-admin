@@ -4,40 +4,52 @@ import {
   ErrorCode,
   normalizeError,
 } from "@/lib/types/errors";
-import { validateProjectId } from "@/lib/utils/validation";
-import { apiClient } from "./api-client";
+import { externalApiClient } from "./external-api-client";
 
 export interface Video {
   id: string;
-  project_id: string;
-  path?: string;
-  status: "UPLOADING" | "PROCESSING" | "FAILED" | "PROCESSED";
-  video_time?: number;
-  file_size?: number;
-  upload_start_timestamp?: string;
-  processing_start_timestamp?: string;
-  processing_end_timestamp?: string;
+  tenantId: string;
+  projectId: string;
+  path: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  videoTime?: number;
+  fileSize?: number;
+  uploadStartTimestamp?: string;
+  processingStartTimestamp?: string;
+  processingEndTimestamp?: string;
   configuration?: ProcessingConfiguration;
 }
 
-export async function getVideosByProjectId(
-  idToken: string,
-  projectId: string
+export interface VideosResponse {
+  data: Video[];
+  count: number;
+}
+
+export async function getVideosByProjectName(
+  apiKey: string,
+  projectName: string
 ): Promise<Video[]> {
   try {
-    validateProjectId(projectId);
-
-    return await apiClient.get<Video[]>(
-      `/api/projects/${projectId}/videos`,
-      idToken
+    const response = await externalApiClient.get<VideosResponse>(
+      `/videos?projectName=${encodeURIComponent(projectName)}`,
+      apiKey
     );
+    return response.data || [];
   } catch (error) {
     const normalizedError = normalizeError(error);
+
+    if (normalizedError.code === ErrorCode.NOT_FOUND) {
+      throw new ApplicationError(ErrorCode.NOT_FOUND, "Project not found", {
+        details: normalizedError.details,
+      });
+    }
 
     if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
       throw new ApplicationError(
         ErrorCode.UNAUTHORIZED,
-        "Your session has expired. Please sign in again.",
+        "Invalid API key. Please check your tenant API key.",
         { details: normalizedError.details }
       );
     }
@@ -53,6 +65,49 @@ export async function getVideosByProjectId(
     throw new ApplicationError(
       ErrorCode.OPERATION_FAILED,
       "Failed to fetch videos. Please try again later.",
+      { details: normalizedError.message, originalError: normalizedError }
+    );
+  }
+}
+
+export async function deleteVideo(
+  apiKey: string,
+  videoId: string
+): Promise<void> {
+  try {
+    await externalApiClient.delete("/video", apiKey, {
+      videoId,
+    });
+  } catch (error) {
+    const normalizedError = normalizeError(error);
+
+    if (normalizedError.code === ErrorCode.NOT_FOUND) {
+      throw new ApplicationError(
+        ErrorCode.NOT_FOUND,
+        "Video not found. It may have already been deleted.",
+        { details: normalizedError.details }
+      );
+    }
+
+    if (normalizedError.code === ErrorCode.FORBIDDEN) {
+      throw new ApplicationError(
+        ErrorCode.FORBIDDEN,
+        "You don't have permission to delete this video.",
+        { details: normalizedError.details }
+      );
+    }
+
+    if (normalizedError.code === ErrorCode.UNAUTHORIZED) {
+      throw new ApplicationError(
+        ErrorCode.UNAUTHORIZED,
+        "Invalid API key. Please check your tenant API key.",
+        { details: normalizedError.details }
+      );
+    }
+
+    throw new ApplicationError(
+      ErrorCode.OPERATION_FAILED,
+      "Failed to delete video. Please try again.",
       { details: normalizedError.message, originalError: normalizedError }
     );
   }

@@ -18,15 +18,15 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface DeleteProjectDialogProps {
-  projectId: string;
-  projectName?: string;
+  projectName: string;
   onSuccess: () => void;
+  apiKey: string;
 }
 
 export function DeleteProjectDialog({
-  projectId,
   projectName,
   onSuccess,
+  apiKey,
 }: DeleteProjectDialogProps) {
   const {
     deleteProject,
@@ -49,7 +49,7 @@ export function DeleteProjectDialog({
     const errorMessage = appError?.message || "Failed to delete project";
 
     if (appError?.code === ErrorCode.UNAUTHORIZED) {
-      showErrorToast("Your session has expired. Please sign in again.");
+      showErrorToast("Invalid API key. Please check your tenant API key.");
     } else if (appError?.code === ErrorCode.PROJECT_NOT_FOUND) {
       showErrorToast("Project not found. It may have already been deleted.");
     } else {
@@ -61,7 +61,7 @@ export function DeleteProjectDialog({
     clearError();
 
     try {
-      await deleteProject(projectId);
+      await deleteProject(projectName, apiKey);
       setOpen(false);
       success("Project deleted successfully!");
       onSuccess();
@@ -71,7 +71,7 @@ export function DeleteProjectDialog({
   };
 
   const displayError = mutationError?.message || null;
-  const dialogAriaLabel = `Delete project ${projectName || projectId}`;
+  const dialogAriaLabel = `Delete project ${projectName}`;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -93,21 +93,13 @@ export function DeleteProjectDialog({
           <DialogTitle>Delete Project</DialogTitle>
           <DialogDescription id="delete-project-description">
             Are you sure you want to delete this project? This action cannot be
-            undone and will revoke access for this API key.
+            undone and will delete all associated videos and S3 objects.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {projectName && (
-            <div>
-              <p className="mb-1 text-sm font-medium">Project Name:</p>
-              <p className="text-sm">{projectName}</p>
-            </div>
-          )}
           <div>
-            <p className="mb-1 text-sm font-medium">API Key:</p>
-            <div className="break-all rounded-md bg-muted p-3 font-mono text-sm">
-              {projectId}
-            </div>
+            <p className="mb-1 text-sm font-medium">Project Name:</p>
+            <p className="text-sm">{projectName}</p>
           </div>
         </div>
         {displayError && <ErrorMessage message={displayError} role="alert" />}

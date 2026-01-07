@@ -38,12 +38,14 @@ interface UploadTestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   apiKey: string;
+  projectName: string;
 }
 
 function UploadTestDialogContent({
   open,
   onOpenChange,
   apiKey,
+  projectName,
 }: UploadTestDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -89,6 +91,7 @@ function UploadTestDialogContent({
       filename: string;
       path: string;
       contentType: string;
+      projectName: string;
       configuration?: {
         videoQuality: "low" | "medium" | "high";
         maxResolution: "720p" | "1080p" | "source";
@@ -99,6 +102,7 @@ function UploadTestDialogContent({
       filename: file.name,
       path: path?.trim() || "",
       contentType: file.type,
+      projectName: projectName,
     };
 
     if (configuration) {
@@ -123,6 +127,7 @@ function UploadTestDialogContent({
       requestBody.configuration = config;
     }
 
+    // All requests to api.stream-io.cloud require the API key in the x-api-key header
     const response = await fetch(
       "https://api.stream-io.cloud/presigned-upload-url",
       {
@@ -425,6 +430,7 @@ export function UploadTestDialog({
   open,
   onOpenChange,
   apiKey,
+  projectName,
 }: UploadTestDialogProps) {
   return (
     <SignedUrlProvider apiKey={apiKey}>
@@ -432,6 +438,7 @@ export function UploadTestDialog({
         open={open}
         onOpenChange={onOpenChange}
         apiKey={apiKey}
+        projectName={projectName}
       />
     </SignedUrlProvider>
   );

@@ -1,20 +1,16 @@
-import { useAuth } from "@/lib/auth-context";
 import { useGetVideosQuery } from "@/lib/store/api";
 import { extractErrorMessage } from "@/lib/utils/error-extractor";
 import { skipToken } from "@reduxjs/toolkit/query";
 
-export function useVideos(projectName: string) {
-  const { session } = useAuth();
-  const token = session?.idToken || null;
-
+export function useVideos(projectName: string, apiKey: string) {
   const {
     data: videos = [],
     isLoading: loading,
     error,
     refetch,
   } = useGetVideosQuery(
-    token && projectName?.trim()
-      ? { projectName, token }
+    apiKey && projectName?.trim()
+      ? { projectName, apiKey }
       : skipToken
   );
 
@@ -27,4 +23,3 @@ export function useVideos(projectName: string) {
     },
   };
 }
-

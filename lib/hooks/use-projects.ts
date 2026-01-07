@@ -1,9 +1,8 @@
-import { useAuth } from "@/lib/auth-context";
 import {
-  CreateProjectRequest,
   useCreateProjectMutation,
   useDeleteProjectMutation,
   useGetProjectsQuery,
+  useUpdateProjectMutation,
 } from "@/lib/store/api";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
 import {
@@ -11,17 +10,15 @@ import {
   transformRtkQueryError,
 } from "@/lib/utils/error-extractor";
 import { skipToken } from "@reduxjs/toolkit/query";
+import { CreateProjectRequest } from "../services/project-service";
 
-export function useProjects() {
-  const { session } = useAuth();
-  const token = session?.idToken || null;
-
+export function useProjects(apiKey: string) {
   const {
     data: projects = [],
     isLoading: loading,
     error,
     refetch,
-  } = useGetProjectsQuery(token || skipToken);
+  } = useGetProjectsQuery(apiKey && apiKey.trim() ? apiKey : skipToken);
 
   return {
     projects,
@@ -34,61 +31,79 @@ export function useProjects() {
 }
 
 export function useProjectMutations() {
-  const { session } = useAuth();
-  const token = session?.idToken || null;
-
   const [
     createProjectMutation,
     { isLoading: createLoading, error: createError, reset: resetCreate },
   ] = useCreateProjectMutation();
   const [
+    updateProjectMutation,
+    { isLoading: updateLoading, error: updateError, reset: resetUpdate },
+  ] = useUpdateProjectMutation();
+  const [
     deleteProjectMutation,
     { isLoading: deleteLoading, error: deleteError, reset: resetDelete },
   ] = useDeleteProjectMutation();
 
-  const createProject = async (data: CreateProjectRequest) => {
-    if (!token) {
+  const createProject = async (data: CreateProjectRequest, apiKey: string) => {
+    if (!apiKey) {
       throw new ApplicationError(
         ErrorCode.UNAUTHORIZED,
-        "You must be signed in to perform this action",
+        "API key is required",
         { statusCode: 401 }
       );
     }
     try {
-      await createProjectMutation({ data, token }).unwrap();
+      await createProjectMutation({ data, apiKey }).unwrap();
     } catch (err) {
       throw transformRtkQueryError(err);
     }
   };
 
-  const deleteProject = async (projectId: string) => {
-    if (!token) {
+  const updateProject = async (data: CreateProjectRequest, apiKey: string) => {
+    if (!apiKey) {
       throw new ApplicationError(
         ErrorCode.UNAUTHORIZED,
-        "You must be signed in to perform this action",
+        "API key is required",
         { statusCode: 401 }
       );
     }
     try {
-      await deleteProjectMutation({ projectId, token }).unwrap();
+      await updateProjectMutation({ data, apiKey }).unwrap();
+    } catch (err) {
+      throw transformRtkQueryError(err);
+    }
+  };
+
+  const deleteProject = async (projectName: string, apiKey: string) => {
+    if (!apiKey) {
+      throw new ApplicationError(
+        ErrorCode.UNAUTHORIZED,
+        "API key is required",
+        { statusCode: 401 }
+      );
+    }
+    try {
+      await deleteProjectMutation({ projectName, apiKey }).unwrap();
     } catch (err) {
       throw transformRtkQueryError(err);
     }
   };
 
   const getError = (): ApplicationError | null => {
-    const error = createError || deleteError;
+    const error = createError || updateError || deleteError;
     if (!error) return null;
     return transformRtkQueryError(error);
   };
 
   return {
     createProject,
+    updateProject,
     deleteProject,
-    loading: createLoading || deleteLoading,
+    loading: createLoading || updateLoading || deleteLoading,
     error: getError(),
     clearError: () => {
       resetCreate();
+      resetUpdate();
       resetDelete();
     },
   };

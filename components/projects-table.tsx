@@ -21,9 +21,11 @@ import { DeleteProjectDialog } from "./delete-project-dialog";
 interface ProjectsTableProps {
   projects: Project[];
   onDelete: () => void;
+  apiKey: string;
+  tenantId: string;
 }
 
-export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
+export function ProjectsTable({ projects, onDelete, apiKey, tenantId }: ProjectsTableProps) {
   const router = useRouter();
 
   if (projects.length === 0) {
@@ -31,7 +33,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
       <EmptyState
         icon={<FolderPlus className="h-6 w-6 text-muted-foreground" />}
         title="No projects found"
-        description="Create your first project to get started with API key management."
+        description="Create your first project to get started."
       />
     );
   }
@@ -56,20 +58,16 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
           <TableBody>
             {projects.map((project) => (
               <TableRow
-                key={project.project_id}
+                key={project.id}
                 className="border-b bg-card transition-colors hover:bg-muted/50"
               >
                 <TableCell className="px-4 py-4 sm:px-6">
                   <div className="font-medium text-foreground">
-                    {project.project_name || (
-                      <span className="italic text-muted-foreground">
-                        Unnamed Project
-                      </span>
-                    )}
+                    {project.projectName}
                   </div>
                 </TableCell>
                 <TableCell className="px-4 py-4 text-sm text-muted-foreground sm:px-6">
-                  {formatDate(project.created_at)}
+                  {formatDate(project.createdAt)}
                 </TableCell>
                 <TableCell className="px-4 py-4 text-right sm:px-6">
                   <div className="flex items-center justify-end gap-2">
@@ -78,9 +76,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                       size="sm"
                       onClick={() =>
                         router.push(
-                          `/projects/${encodeProjectName(
-                            project.project_name || project.project_id
-                          )}`
+                          `/tenants/${tenantId}/projects/${encodeProjectName(project.projectName)}`
                         )
                       }
                     >
@@ -88,9 +84,9 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                       View
                     </Button>
                     <DeleteProjectDialog
-                      projectId={project.project_id}
-                      projectName={project.project_name}
+                      projectName={project.projectName}
                       onSuccess={onDelete}
+                      apiKey={apiKey}
                     />
                   </div>
                 </TableCell>
@@ -102,16 +98,12 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
 
       <div className="block space-y-4 p-4 md:hidden sm:p-6">
         {projects.map((project) => (
-          <Card key={project.project_id} className="border shadow-sm">
+          <Card key={project.id} className="border shadow-sm">
             <CardHeader className="space-y-3 pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground truncate">
-                    {project.project_name || (
-                      <span className="italic text-muted-foreground">
-                        Unnamed Project
-                      </span>
-                    )}
+                    {project.projectName}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -120,9 +112,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     size="sm"
                     onClick={() =>
                       router.push(
-                        `/projects/${encodeProjectName(
-                          project.project_name || project.project_id
-                        )}`
+                        `/tenants/${tenantId}/projects/${encodeProjectName(project.projectName)}`
                       )
                     }
                   >
@@ -130,9 +120,9 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                     View
                   </Button>
                   <DeleteProjectDialog
-                    projectId={project.project_id}
-                    projectName={project.project_name}
+                    projectName={project.projectName}
                     onSuccess={onDelete}
+                    apiKey={apiKey}
                   />
                 </div>
               </div>
@@ -143,7 +133,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                   Created
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDate(project.created_at)}
+                  {formatDate(project.createdAt)}
                 </p>
               </div>
             </CardContent>
