@@ -15,6 +15,7 @@ export enum ErrorCode {
   PROJECT_NOT_FOUND = "PROJECT_NOT_FOUND",
   OPERATION_FAILED = "OPERATION_FAILED",
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  FORBIDDEN = "FORBIDDEN",
 }
 
 export interface AppError {
