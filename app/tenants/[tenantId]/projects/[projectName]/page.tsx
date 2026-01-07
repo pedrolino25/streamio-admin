@@ -13,7 +13,7 @@ import {
 import { ErrorMessage } from "@/components/ui/error-message";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { PageHeader } from "@/components/ui/page-header";
-import { UploadTestDialog } from "@/components/upload-test-dialog";
+import { ProjectMetricsCards } from "@/components/project-metrics-cards";
 import { VideosTable } from "@/components/videos-table";
 import { WebhookTestDialogControlled } from "@/components/webhook-test-dialog-controlled";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
@@ -22,7 +22,7 @@ import { useTenants } from "@/lib/hooks/use-tenants";
 import { useVideos } from "@/lib/hooks/use-videos";
 import { formatDate } from "@/lib/utils/date-utils";
 import { decodeProjectName } from "@/lib/utils/project-url";
-import { ArrowLeft, Check, Copy, Upload, Webhook } from "lucide-react";
+import { ArrowLeft, Check, Copy, Webhook } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -51,7 +51,6 @@ export default function ProjectDetailPage() {
     refetch,
   } = useVideos(projectName, apiKey);
   const { copyToClipboard, copiedId } = useClipboard();
-  const [testUploadOpen, setTestUploadOpen] = useState(false);
   const [testWebhookOpen, setTestWebhookOpen] = useState(false);
 
   if (!params?.tenantId || !params?.projectName) {
@@ -137,26 +136,16 @@ export default function ProjectDetailPage() {
                         Project details and settings
                       </CardDescription>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    {project.webhookUrl && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setTestUploadOpen(true)}
+                        onClick={() => setTestWebhookOpen(true)}
                       >
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload Test
+                        <Webhook className="mr-2 h-4 w-4" />
+                        Webhook Test
                       </Button>
-                      {project.webhookUrl && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTestWebhookOpen(true)}
-                        >
-                          <Webhook className="mr-2 h-4 w-4" />
-                          Webhook Test
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="bg-card p-4 sm:p-6">
@@ -226,33 +215,18 @@ export default function ProjectDetailPage() {
                 </CardContent>
               </Card>
 
+              <ProjectMetricsCards videos={videos} />
+
               <Card className="border shadow-sm">
                 <CardHeader className="border-b bg-card px-4 py-4 sm:px-6">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <CardTitle className="text-lg font-semibold">
-                        Videos
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {videos.length}{" "}
-                        {videos.length === 1 ? "video" : "videos"} total
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => refetch()}
-                      disabled={videosLoading}
-                    >
-                      {videosLoading ? (
-                        <>
-                          <LoadingSpinner size="sm" className="mr-2" />
-                          Refreshing...
-                        </>
-                      ) : (
-                        "Refresh"
-                      )}
-                    </Button>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Videos
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {videos.length}{" "}
+                      {videos.length === 1 ? "video" : "videos"} total
+                    </CardDescription>
                   </div>
                 </CardHeader>
                 <CardContent className="bg-card p-0">
@@ -276,6 +250,8 @@ export default function ProjectDetailPage() {
                       videos={videos}
                       apiKey={apiKey}
                       projectName={projectName}
+                      onRefresh={refetch}
+                      refreshing={videosLoading}
                     />
                   )}
                 </CardContent>
@@ -284,22 +260,12 @@ export default function ProjectDetailPage() {
           ) : null}
         </div>
 
-        {project && (
-          <>
-            <UploadTestDialog
-              open={testUploadOpen}
-              onOpenChange={setTestUploadOpen}
-              apiKey={apiKey}
-              projectName={projectName}
-            />
-            {project.webhookUrl && (
-              <WebhookTestDialogControlled
-                open={testWebhookOpen}
-                onOpenChange={setTestWebhookOpen}
-                webhookUrl={project.webhookUrl}
-              />
-            )}
-          </>
+        {project && project.webhookUrl && (
+          <WebhookTestDialogControlled
+            open={testWebhookOpen}
+            onOpenChange={setTestWebhookOpen}
+            webhookUrl={project.webhookUrl}
+          />
         )}
       </div>
     </ProtectedRoute>

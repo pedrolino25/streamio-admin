@@ -1,21 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Project } from "@/lib/store/api";
 import { encodeProjectName } from "@/lib/utils/project-url";
-import { formatDate } from "@/lib/utils/date-utils";
+import { ColumnDef } from "@tanstack/react-table";
 import { ExternalLink, FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import * as React from "react";
 import { DeleteProjectDialog } from "./delete-project-dialog";
 
 interface ProjectsTableProps {
@@ -25,8 +18,63 @@ interface ProjectsTableProps {
   tenantId: string;
 }
 
-export function ProjectsTable({ projects, onDelete, apiKey, tenantId }: ProjectsTableProps) {
+export function ProjectsTable({
+  projects,
+  onDelete,
+  apiKey,
+  tenantId,
+}: ProjectsTableProps) {
   const router = useRouter();
+
+  const columns: ColumnDef<Project>[] = React.useMemo(
+    () => [
+      {
+        accessorKey: "projectName",
+        header: "Project Name",
+        cell: ({ row }) => (
+          <div className="font-medium text-foreground">
+            {row.getValue("projectName")}
+          </div>
+        ),
+        enableHiding: false,
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        meta: {
+          align: "right",
+        },
+        cell: ({ row }) => {
+          const project = row.original;
+          return (
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  router.push(
+                    `/tenants/${tenantId}/projects/${encodeProjectName(
+                      project.projectName
+                    )}`
+                  )
+                }
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View
+              </Button>
+              <DeleteProjectDialog
+                projectName={project.projectName}
+                onSuccess={onDelete}
+                apiKey={apiKey}
+              />
+            </div>
+          );
+        },
+        enableHiding: false,
+      },
+    ],
+    [router, tenantId, apiKey, onDelete]
+  );
 
   if (projects.length === 0) {
     return (
@@ -39,107 +87,19 @@ export function ProjectsTable({ projects, onDelete, apiKey, tenantId }: Projects
   }
 
   return (
-    <div className="divide-y">
-      <div className="hidden overflow-x-auto md:block">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b bg-muted/50 hover:bg-muted/50">
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">
-                Project Name
-              </TableHead>
-              <TableHead className="h-12 px-4 font-semibold sm:px-6">
-                Created
-              </TableHead>
-              <TableHead className="h-12 w-[200px] px-4 font-semibold text-right sm:px-6">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {projects.map((project) => (
-              <TableRow
-                key={project.id}
-                className="border-b bg-card transition-colors hover:bg-muted/50"
-              >
-                <TableCell className="px-4 py-4 sm:px-6">
-                  <div className="font-medium text-foreground">
-                    {project.projectName}
-                  </div>
-                </TableCell>
-                <TableCell className="px-4 py-4 text-sm text-muted-foreground sm:px-6">
-                  {formatDate(project.createdAt)}
-                </TableCell>
-                <TableCell className="px-4 py-4 text-right sm:px-6">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        router.push(
-                          `/tenants/${tenantId}/projects/${encodeProjectName(project.projectName)}`
-                        )
-                      }
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      View
-                    </Button>
-                    <DeleteProjectDialog
-                      projectName={project.projectName}
-                      onSuccess={onDelete}
-                      apiKey={apiKey}
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="block space-y-4 p-4 md:hidden sm:p-6">
-        {projects.map((project) => (
-          <Card key={project.id} className="border shadow-sm">
-            <CardHeader className="space-y-3 pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">
-                    {project.projectName}
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      router.push(
-                        `/tenants/${tenantId}/projects/${encodeProjectName(project.projectName)}`
-                      )
-                    }
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View
-                  </Button>
-                  <DeleteProjectDialog
-                    projectName={project.projectName}
-                    onSuccess={onDelete}
-                    apiKey={apiKey}
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                  Created
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {formatDate(project.createdAt)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+    <DataTable
+      columns={columns}
+      data={projects}
+      searchPlaceholder="Search projects..."
+      enableColumnVisibility={true}
+      enablePagination={true}
+      enableSorting={true}
+      pageSize={10}
+      emptyState={
+        <div className="py-12 text-center text-muted-foreground">
+          No projects found matching your search.
+        </div>
+      }
+    />
   );
 }
