@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Project } from "@/lib/services/project-service";
+import { Project } from "@/lib/store/api";
 import { encodeProjectName } from "@/lib/utils/project-url";
 import { formatDate } from "@/lib/utils/date-utils";
 import { ExternalLink, FolderPlus } from "lucide-react";

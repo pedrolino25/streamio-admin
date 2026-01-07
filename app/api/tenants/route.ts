@@ -5,7 +5,7 @@ import {
   tenantApiKeyExists,
 } from "@/lib/repositories/tenant-repository-factory";
 import { logger } from "@/lib/services/logger";
-import { Tenant } from "@/lib/services/tenant-service";
+import { Tenant } from "@/lib/store/api";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";

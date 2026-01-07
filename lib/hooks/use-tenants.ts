@@ -1,6 +1,6 @@
 import { useAuth } from "@/lib/auth-context";
-import { CreateTenantRequest } from "@/lib/services/tenant-service";
 import {
+  CreateTenantRequest,
   useCreateTenantMutation,
   useGetTenantsQuery,
 } from "@/lib/store/api";

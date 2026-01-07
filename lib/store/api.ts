@@ -1,19 +1,87 @@
+import { ProcessingConfiguration } from "@/lib/schemas/upload-schemas";
 import { mapHttpStatusToErrorCode } from "@/lib/services/error-transformer";
-import {
-  CreateProjectRequest,
-  CreateProjectResponse,
-  Project,
-  UpdateProjectRequest,
-  UpdateProjectResponse,
-} from "@/lib/services/project-service";
-import {
-  CreateTenantRequest,
-  CreateTenantResponse,
-  Tenant,
-} from "@/lib/services/tenant-service";
-import { Video } from "@/lib/services/video-service";
 import { ErrorCode } from "@/lib/types/errors";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
+// Type definitions (moved from services)
+export interface Project {
+  id: string;
+  tenantId: string;
+  projectName: string;
+  webhookUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateProjectRequest {
+  projectName: string;
+  webhookUrl?: string;
+}
+
+export interface CreateProjectResponse {
+  id: string;
+  tenantId: string;
+  projectName: string;
+  webhookUrl?: string;
+  message: string;
+}
+
+export interface UpdateProjectRequest {
+  projectName: string;
+  webhookUrl?: string;
+}
+
+export interface UpdateProjectResponse {
+  id: string;
+  tenantId: string;
+  projectName: string;
+  webhookUrl?: string;
+  message: string;
+}
+
+export interface Tenant {
+  id: string;
+  api_key: string;
+  organization: string;
+  status: string;
+}
+
+export interface CreateTenantRequest {
+  organization: string;
+}
+
+export interface CreateTenantResponse {
+  id: string;
+  api_key: string;
+  organization: string;
+  status: string;
+}
+
+export interface Video {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  path: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  videoTime?: number;
+  fileSize?: number;
+  uploadStartTimestamp?: string;
+  processingStartTimestamp?: string;
+  processingEndTimestamp?: string;
+  configuration?: ProcessingConfiguration;
+}
+
+export interface WebhookTestRequest {
+  webhookUrl: string;
+}
+
+export interface WebhookTestResponse {
+  status: number;
+  response: unknown;
+  error?: string;
+}
 
 interface RtkQueryErrorData {
   code?: ErrorCode;
@@ -251,6 +319,14 @@ export const internalApi = createApi({
       }),
       invalidatesTags: ["Tenants"],
     }),
+
+    testWebhook: builder.mutation<WebhookTestResponse, WebhookTestRequest>({
+      query: (data) => ({
+        url: "/api/webhook-test",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -266,4 +342,8 @@ export const {
 } = externalApi;
 
 // Export hooks from internal API
-export const { useGetTenantsQuery, useCreateTenantMutation } = internalApi;
+export const {
+  useGetTenantsQuery,
+  useCreateTenantMutation,
+  useTestWebhookMutation,
+} = internalApi;

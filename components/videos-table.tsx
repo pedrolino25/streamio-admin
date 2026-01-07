@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Video } from "@/lib/services/video-service";
+import { Video } from "@/lib/store/api";
 import {
   formatDate,
   formatElapsedProcessingTime,
@@ -25,6 +25,7 @@ import { VideoPlaybackTestDialog } from "./video-playback-test-dialog";
 interface VideosTableProps {
   videos: Video[];
   apiKey: string;
+  projectName: string;
 }
 
 function ProcessingTimeDisplay({
@@ -70,7 +71,7 @@ function ProcessingTimeDisplay({
   );
 }
 
-export function VideosTable({ videos, apiKey }: VideosTableProps) {
+export function VideosTable({ videos, apiKey, projectName }: VideosTableProps) {
   const [testPlaybackOpen, setTestPlaybackOpen] = useState(false);
   const [selectedVideoPath, setSelectedVideoPath] = useState<string | null>(
     null
@@ -201,29 +202,32 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                   </code>
                 </TableCell>
                 <TableCell className="px-4 py-4 sm:px-6">
-                  <Badge variant={getStatusVariant(video.status)}>
-                    {video.status}
-                  </Badge>
+                  <div className="flex justify-center">
+                    {video.status.toUpperCase() === "PROCESSED" &&
+                    video.path ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="hover:bg-muted"
+                        onClick={() => handlePlayVideo(video.path)}
+                        title="Play video"
+                        aria-label={`Play video ${video.path}`}
+                      >
+                        <Play className="h-4 w-4" aria-hidden="true" />
+                        Play video
+                      </Button>
+                    ) : (
+                      <Badge variant={getStatusVariant(video.status)}>
+                        {video.status}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="px-4 py-4 sm:px-6">
                   {video.path ? (
-                    <div className="flex items-center gap-2">
-                      <code className="max-w-xs truncate rounded bg-muted px-2 py-1 font-mono text-xs text-foreground sm:max-w-md">
-                        {video.path}
-                      </code>
-                      {video.status.toUpperCase() === "PROCESSED" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                          onClick={() => handlePlayVideo(video.path)}
-                          title="Play video"
-                          aria-label={`Play video ${video.path}`}
-                        >
-                          <Play className="h-4 w-4" aria-hidden="true" />
-                        </Button>
-                      )}
-                    </div>
+                    <code className="max-w-xs truncate rounded bg-muted px-2 py-1 font-mono text-xs text-foreground sm:max-w-md">
+                      {video.path}
+                    </code>
                   ) : (
                     <span className="text-sm text-muted-foreground">—</span>
                   )}
@@ -267,35 +271,35 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
                     {video.id}
                   </code>
                 </div>
-                <Badge
-                  variant={getStatusVariant(video.status)}
-                  className="ml-2 shrink-0"
-                >
-                  {video.status}
-                </Badge>
+                {video.status.toUpperCase() === "PROCESSED" && video.path ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 hover:bg-muted"
+                    onClick={() => handlePlayVideo(video.path)}
+                    title="Play video"
+                    aria-label={`Play video ${video.path}`}
+                  >
+                    <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Play video
+                  </Button>
+                ) : (
+                  <Badge
+                    variant={getStatusVariant(video.status)}
+                    className="ml-2 shrink-0"
+                  >
+                    {video.status}
+                  </Badge>
+                )}
               </div>
               {video.path && (
                 <div>
                   <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                     Path
                   </p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 break-all rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
-                      {video.path}
-                    </code>
-                    {video.status.toUpperCase() === "PROCESSED" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                        onClick={() => handlePlayVideo(video.path)}
-                        title="Play video"
-                        aria-label={`Play video ${video.path}`}
-                      >
-                        <Play className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    )}
-                  </div>
+                  <code className="block break-all rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                    {video.path}
+                  </code>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
@@ -362,6 +366,7 @@ export function VideosTable({ videos, apiKey }: VideosTableProps) {
         }}
         apiKey={apiKey}
         initialVideoPath={selectedVideoPath || undefined}
+        projectName={projectName}
       />
     </div>
   );

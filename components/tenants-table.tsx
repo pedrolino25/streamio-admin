@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tenant } from "@/lib/services/tenant-service";
+import { Tenant } from "@/lib/store/api";
 import { ExternalLink, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 

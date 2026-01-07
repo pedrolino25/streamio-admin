@@ -36,6 +36,7 @@ interface VideoPlaybackTestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   apiKey: string;
+  projectName: string;
   initialVideoPath?: string;
 }
 
@@ -291,9 +292,10 @@ export function VideoPlaybackTestDialog({
   onOpenChange,
   apiKey,
   initialVideoPath,
+  projectName,
 }: VideoPlaybackTestDialogProps) {
   return (
-    <SignedUrlProvider apiKey={apiKey}>
+    <SignedUrlProvider apiKey={apiKey} projectName={projectName}>
       <VideoPlaybackTestDialogContent
         open={open}
         onOpenChange={onOpenChange}

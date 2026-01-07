@@ -30,7 +30,6 @@ const SignedUrlContext = createContext<SignedUrlContextType | undefined>(
   undefined
 );
 
-// All requests to api.stream-io.cloud require the API key in the x-api-key header
 const SIGNED_URL_ENDPOINT = "https://api.stream-io.cloud/presigned-play-url";
 const REFRESH_BUFFER = 1 * 60 * 1000;
 const DEFAULT_EXPIRATION = 10 * 60 * 1000;
@@ -38,9 +37,11 @@ const DEFAULT_EXPIRATION = 10 * 60 * 1000;
 export function SignedUrlProvider({
   children,
   apiKey,
+  projectName,
 }: {
   children: ReactNode;
   apiKey: string;
+  projectName?: string;
 }) {
   const [baseUrl, setBaseUrl] = useState<string | null>(null);
   const [queryParams, setQueryParams] = useState<string | null>(null);
@@ -51,19 +52,23 @@ export function SignedUrlProvider({
   const loadingRef = useRef(false);
 
   const fetchSignedUrl = useCallback(async () => {
-    if (!apiKey || loadingRef.current) return;
+    if (!apiKey || !projectName || loadingRef.current) return;
 
     try {
       loadingRef.current = true;
       setLoading(true);
       setError(null);
 
+      console.log("fetchSignedUrl", apiKey, projectName);
       const response = await fetch(SIGNED_URL_ENDPOINT, {
         method: "POST",
         headers: {
           "x-api-key": apiKey,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          projectName,
+        }),
       });
 
       if (!response.ok) {
@@ -84,13 +89,13 @@ export function SignedUrlProvider({
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [apiKey]);
+  }, [apiKey, projectName]);
 
   useEffect(() => {
-    if (apiKey) {
+    if (apiKey && projectName) {
       fetchSignedUrl();
     }
-  }, [apiKey, fetchSignedUrl]);
+  }, [apiKey, projectName, fetchSignedUrl]);
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

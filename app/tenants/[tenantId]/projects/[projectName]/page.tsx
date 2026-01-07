@@ -272,7 +272,11 @@ export default function ProjectDetailPage() {
                       </Button>
                     </div>
                   ) : (
-                    <VideosTable videos={videos} apiKey={apiKey} />
+                    <VideosTable
+                      videos={videos}
+                      apiKey={apiKey}
+                      projectName={projectName}
+                    />
                   )}
                 </CardContent>
               </Card>

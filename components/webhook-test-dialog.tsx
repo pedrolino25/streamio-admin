@@ -31,11 +31,12 @@ import {
   webhookTestSchema,
   WebhookTestFormValues,
 } from "@/lib/schemas/webhook-schemas";
-import { testWebhook } from "@/lib/services/webhook-service";
+import { useTestWebhookMutation } from "@/lib/store/api";
+import { transformRtkQueryError } from "@/lib/utils/error-extractor";
 
 export function WebhookTestDialog() {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [testWebhook, { isLoading: loading }] = useTestWebhookMutation();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [response, setResponse] = useState<unknown>(null);
@@ -49,14 +50,15 @@ export function WebhookTestDialog() {
   });
 
   const handleSubmit = async (values: WebhookTestFormValues) => {
-    setLoading(true);
     setError("");
     setSuccess(false);
     setResponse(null);
     setStatusCode(null);
 
     try {
-      const result = await testWebhook(values.webhookUrl);
+      const result = await testWebhook({
+        webhookUrl: values.webhookUrl.trim(),
+      }).unwrap();
       setStatusCode(result.status);
       setResponse(result.response);
       setSuccess(result.status === 200);
@@ -64,10 +66,9 @@ export function WebhookTestDialog() {
         setError(result.error);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Test failed");
+      const transformedError = transformRtkQueryError(err);
+      setError(transformedError.message || "Test failed");
       setSuccess(false);
-    } finally {
-      setLoading(false);
     }
   };
 

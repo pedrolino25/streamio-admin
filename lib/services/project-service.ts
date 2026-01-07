@@ -47,7 +47,6 @@ export interface UpdateProjectResponse {
 
 export async function getAllProjects(apiKey: string): Promise<Project[]> {
   try {
-    console.log("getAllProjects", apiKey);
     const response = await externalApiClient.get<ProjectsResponse>(
       "/projects",
       apiKey

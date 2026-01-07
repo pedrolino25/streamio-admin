@@ -1,4 +1,5 @@
 import {
+  CreateProjectRequest,
   useCreateProjectMutation,
   useDeleteProjectMutation,
   useGetProjectsQuery,
@@ -10,7 +11,6 @@ import {
   transformRtkQueryError,
 } from "@/lib/utils/error-extractor";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { CreateProjectRequest } from "../services/project-service";
 
 export function useProjects(apiKey: string) {
   const {
