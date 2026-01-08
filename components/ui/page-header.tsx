@@ -1,50 +1,112 @@
-/**
- * PageHeader Component
- *
- * Reusable page header component following Composition Pattern.
- * Provides consistent header layout across pages.
- * Responsive design for mobile and desktop.
- */
-
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import * as React from "react";
 
-interface PageHeaderProps {
-  title?: string;
-  description?: string;
-  actions?: ReactNode;
-  className?: string;
-}
+type PageHeaderRootProps = React.ComponentPropsWithoutRef<"header">;
 
-export function PageHeader({
-  title,
-  description,
-  actions,
-  className,
-}: PageHeaderProps) {
-  return (
-    <div className={cn("border-b border-border bg-card", className)}>
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              {title || (
-                <span className="text-muted-foreground">Loading...</span>
-              )}
-            </h1>
-            {description && (
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                {description}
-              </p>
-            )}
+const PageHeaderRoot = React.forwardRef<HTMLElement, PageHeaderRootProps>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <header
+        ref={ref}
+        className={cn("border-b border-border bg-card", className)}
+        {...props}
+      >
+        <div className="py-2 sm:py-3">
+          <div className="flex gap-2 sm:flex-row sm:items-center sm:justify-between">
+            {children}
           </div>
-          {actions && (
-            <div className="flex items-center justify-end sm:justify-start">
-              {actions}
-            </div>
-          )}
         </div>
-      </div>
-    </div>
+      </header>
+    );
+  }
+);
+PageHeaderRoot.displayName = "PageHeader";
+
+type PageHeaderStartProps = React.ComponentPropsWithoutRef<"div">;
+const PageHeaderStart = React.forwardRef<HTMLDivElement, PageHeaderStartProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex items-center gap-2 flex-1 min-w-0 pl-4 sm:pl-6",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+PageHeaderStart.displayName = "PageHeader.Start";
+
+type PageHeaderEndProps = React.ComponentPropsWithoutRef<"div">;
+const PageHeaderEnd = React.forwardRef<HTMLDivElement, PageHeaderEndProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex items-center justify-end gap-2 shrink-0 pr-4 sm:pr-6",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+PageHeaderEnd.displayName = "PageHeader.End";
+
+type PageHeaderTextProps = React.ComponentPropsWithoutRef<"div">;
+const PageHeaderText = React.forwardRef<HTMLDivElement, PageHeaderTextProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn("flex flex-col min-w-0", className)}
+        {...props}
+      />
+    );
+  }
+);
+PageHeaderText.displayName = "PageHeader.Text";
+
+type PageHeaderTitleProps = React.ComponentPropsWithoutRef<"h1">;
+const PageHeaderTitle = React.forwardRef<
+  HTMLHeadingElement,
+  PageHeaderTitleProps
+>(({ className, ...props }, ref) => {
+  return (
+    <h1
+      ref={ref}
+      className={cn(
+        "text-base sm:text-lg font-semibold leading-tight",
+        className
+      )}
+      {...props}
+    />
   );
-}
+});
+PageHeaderTitle.displayName = "PageHeader.Title";
+
+type PageHeaderDescriptionProps = React.ComponentPropsWithoutRef<"p">;
+const PageHeaderDescription = React.forwardRef<
+  HTMLParagraphElement,
+  PageHeaderDescriptionProps
+>(({ className, ...props }, ref) => {
+  return (
+    <p
+      ref={ref}
+      className={cn("text-sm text-muted-foreground mt-0.5 truncate", className)}
+      {...props}
+    />
+  );
+});
+PageHeaderDescription.displayName = "PageHeader.Description";
+
+export const PageHeader = Object.assign(PageHeaderRoot, {
+  Start: PageHeaderStart,
+  End: PageHeaderEnd,
+  Text: PageHeaderText,
+  Title: PageHeaderTitle,
+  Description: PageHeaderDescription,
+});

@@ -53,8 +53,8 @@ export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
     return sum + minutes;
   }, 0);
 
-  const gbPerMinute =
-    totalVideoMinutes > 0 ? totalFileSizeGB / totalVideoMinutes : 0;
+  const mbPerMinute =
+    totalVideoMinutes > 0 ? totalFileSizeMB / totalVideoMinutes : 0;
 
   // Card 2: Processing metrics
   const totalProcessing = videos.filter(
@@ -128,45 +128,45 @@ export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-2 md:grid-cols-3">
       {/* Card 1: Total Video Storage */}
       <Card className="border shadow-sm">
-        <CardHeader className="border-b bg-card px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <Database className="h-5 w-5 text-primary" />
+        <CardHeader className="border-b bg-card px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-primary/10 p-1.5">
+              <Database className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-base font-semibold">
+              <CardTitle className="text-sm font-semibold">
                 Video Storage
               </CardTitle>
-              <CardDescription className="mt-1 text-xs">
+              <CardDescription className="mt-0.5 text-xs">
                 Processed videos only
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="bg-card p-4 sm:p-6">
-          <div className="space-y-3">
+        <CardContent className="bg-card p-3 sm:p-4">
+          <div className="space-y-2">
             <div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {totalFileSizeGB.toFixed(2)} GB
               </p>
-              <p className="text-sm text-muted-foreground">Total storage</p>
+              <p className="text-xs text-muted-foreground">Total storage</p>
             </div>
-            <div className="border-t pt-3">
-              <p className="text-lg font-semibold text-foreground">
+            <div className="border-t pt-2">
+              <p className="text-base font-semibold text-foreground">
                 {totalVideoMinutes.toFixed(2)} min
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Total video duration
               </p>
             </div>
-            <div className="border-t pt-3">
-              <p className="text-lg font-semibold text-foreground">
-                {gbPerMinute.toFixed(3)} GB/min
+            <div className="border-t pt-2">
+              <p className="text-base font-semibold text-foreground">
+                {mbPerMinute.toFixed(2)} MB/min
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Storage per minute
               </p>
             </div>
@@ -176,40 +176,42 @@ export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
 
       {/* Card 2: Processing Metrics */}
       <Card className="border shadow-sm">
-        <CardHeader className="border-b bg-card px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <PlayCircle className="h-5 w-5 text-primary" />
+        <CardHeader className="border-b bg-card px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-primary/10 p-1.5">
+              <PlayCircle className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-base font-semibold">Processing</CardTitle>
-              <CardDescription className="mt-1 text-xs">
+              <CardTitle className="text-sm font-semibold">
+                Processing
+              </CardTitle>
+              <CardDescription className="mt-0.5 text-xs">
                 Video processing status
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="bg-card p-4 sm:p-6">
-          <div className="space-y-3">
+        <CardContent className="bg-card p-3 sm:p-4">
+          <div className="space-y-2">
             <div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {totalProcessed}
               </p>
-              <p className="text-sm text-muted-foreground">Total processed</p>
+              <p className="text-xs text-muted-foreground">Total processed</p>
             </div>
-            <div className="border-t pt-3">
-              <p className="text-lg font-semibold text-foreground">
+            <div className="border-t pt-2">
+              <p className="text-base font-semibold text-foreground">
                 {totalProcessing}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Currently processing
               </p>
             </div>
-            <div className="border-t pt-3">
-              <p className="text-lg font-semibold text-destructive">
+            <div className="border-t pt-2">
+              <p className="text-base font-semibold text-destructive">
                 {totalFailed}
               </p>
-              <p className="text-sm text-muted-foreground">Total failed</p>
+              <p className="text-xs text-muted-foreground">Total failed</p>
             </div>
           </div>
         </CardContent>
@@ -217,35 +219,35 @@ export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
 
       {/* Card 3: Average Conversion Time */}
       <Card className="border shadow-sm">
-        <CardHeader className="border-b bg-card px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <Timer className="h-5 w-5 text-primary" />
+        <CardHeader className="border-b bg-card px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-primary/10 p-1.5">
+              <Timer className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-base font-semibold">
+              <CardTitle className="text-sm font-semibold">
                 Conversion Time
               </CardTitle>
-              <CardDescription className="mt-1 text-xs">
+              <CardDescription className="mt-0.5 text-xs">
                 Per minute of video
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="bg-card p-4 sm:p-6">
-          <div className="space-y-3">
+        <CardContent className="bg-card p-3 sm:p-4">
+          <div className="space-y-2">
             <div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {avgConversionTimePerMinute > 0
                   ? formatDuration(avgConversionTimePerMinute)
                   : "—"}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Average conversion time
               </p>
             </div>
-            <div className="border-t pt-3">
-              <p className="text-sm text-muted-foreground">
+            <div className="border-t pt-2">
+              <p className="text-xs text-muted-foreground">
                 Based on {processingTimes.length} processed{" "}
                 {processingTimes.length === 1 ? "video" : "videos"}
               </p>
@@ -256,4 +258,3 @@ export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
     </div>
   );
 }
-

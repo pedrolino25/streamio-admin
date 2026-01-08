@@ -33,40 +33,44 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
-        <PageHeader
-          title="Streamio Platform"
-          description="Manage tenants and projects for the Streamio Platform"
-          actions={
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSignOut}
-                className="gap-2"
-                aria-label="Sign out"
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </Button>
-            </div>
-          }
-        />
+        <PageHeader>
+          <PageHeader.Start>
+            <PageHeader.Text>
+              <PageHeader.Title>Streamio Platform</PageHeader.Title>
+              <PageHeader.Description>
+                Manage tenants and projects for the Streamio Platform
+              </PageHeader.Description>
+            </PageHeader.Text>
+          </PageHeader.Start>
+          <PageHeader.End>
+            <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              className="gap-2"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          </PageHeader.End>
+        </PageHeader>
 
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
           <Card className="border shadow-sm">
-            <CardHeader className="border-b bg-card px-4 py-4 sm:px-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardHeader className="border-b bg-card px-3 py-2 sm:px-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle className="text-lg font-semibold">
+                  <CardTitle className="text-base font-semibold">
                     All Tenants
                   </CardTitle>
-                  <CardDescription className="mt-1">
+                  <CardDescription className="mt-0.5">
                     {tenants.length}{" "}
                     {tenants.length === 1 ? "tenant" : "tenants"} total
                   </CardDescription>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <CreateTenantDialog onSuccess={refetch} />
                 </div>
               </div>
@@ -88,7 +92,9 @@ export default function Home() {
                   </Button>
                 </div>
               ) : (
-                <TenantsTable tenants={tenants} />
+                <div className="p-3">
+                  <TenantsTable tenants={tenants} />
+                </div>
               )}
             </CardContent>
           </Card>

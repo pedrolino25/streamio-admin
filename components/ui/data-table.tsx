@@ -125,8 +125,8 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -163,7 +163,7 @@ export function DataTable<TData, TValue>({
                   return (
                     <TableHead
                       key={header.id}
-                      className={`h-12 px-4 sm:px-6 ${
+                      className={`h-8 px-2 sm:px-3 ${
                         isRightAligned ? "text-right" : ""
                       }`}
                       style={{ cursor: canSort ? "pointer" : "default" }}
@@ -208,7 +208,7 @@ export function DataTable<TData, TValue>({
                   className="border-b bg-card transition-colors hover:bg-muted/50"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-4 py-4 sm:px-6">
+                    <TableCell key={cell.id} className="px-2 py-1.5 sm:px-3">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
