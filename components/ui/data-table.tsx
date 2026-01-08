@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronDown, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, List, Search } from "lucide-react";
 import * as React from "react";
 import { Button } from "./button";
 import { Checkbox } from "./checkbox";
@@ -127,7 +127,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative w-full sm:flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
@@ -137,7 +137,7 @@ export function DataTable<TData, TValue>({
             className="w-full pl-9"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           {headerActions}
           {enableColumnVisibility && (
             <>
@@ -281,8 +281,7 @@ function ColumnVisibilityDropdown<TData>({
         onClick={() => setIsOpen(!isOpen)}
         className="gap-2"
       >
-        Columns
-        <ChevronDown className="h-4 w-4" />
+        <List className="h-4 w-4" />
       </Button>
       {isOpen && (
         <>
