@@ -1,11 +1,29 @@
 "use client";
 
-import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
 import { ProjectMetricsCards } from "@/components/cards/project-metrics-cards";
+import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
+import { UploadTestDialog } from "@/components/dialogs/upload-test-dialog";
+import { WebhookTestDialogControlled } from "@/components/dialogs/webhook-test-dialog-controlled";
+import { ProtectedRoute } from "@/components/layout/protected-route";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/layout/sidebar";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ProjectSelector } from "@/components/project-selector";
 import { ProjectsTable } from "@/components/tables/projects-table";
-import { ProtectedRoute } from "@/components/layout/protected-route";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { VideosTable } from "@/components/tables/videos-table";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,25 +54,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { PageHeader } from "@/components/ui/page-header";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
-} from "@/components/layout/sidebar";
 import { useToast } from "@/components/ui/toast-container";
-import { VideosTable } from "@/components/tables/videos-table";
-import { UploadTestDialog } from "@/components/dialogs/upload-test-dialog";
-import { WebhookTestDialogControlled } from "@/components/dialogs/webhook-test-dialog-controlled";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { useProject } from "@/lib/hooks/use-project";
 import { useProjectMutations, useProjects } from "@/lib/hooks/use-projects";
@@ -105,7 +105,7 @@ export default function ProjectDetailPage() {
 
   const { tenants } = useTenants();
   const tenant = tenants.find((t) => t.id === tenantId);
-  const apiKey = tenant?.api_key || "";
+  const apiKey = tenant?.apiKey || "";
 
   const {
     projects,
@@ -373,16 +373,16 @@ export default function ProjectDetailPage() {
                         API Key
                       </label>
                       <code className="inline-flex items-center gap-1 rounded bg-muted px-2 py-1.5 font-mono text-xs text-foreground">
-                        <span className="break-all">{tenant?.api_key}</span>
-                        {tenant?.api_key && (
+                        <span className="break-all">{tenant?.apiKey}</span>
+                        {tenant?.apiKey && (
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 p-0 ml-1 shrink-0"
                             aria-label="Copy API key"
-                            onClick={() => copyToClipboard(tenant.api_key)}
+                            onClick={() => copyToClipboard(tenant.apiKey)}
                           >
-                            {copiedId === tenant.api_key ? (
+                            {copiedId === tenant.apiKey ? (
                               <Check className="h-3 w-3" />
                             ) : (
                               <Copy className="h-3 w-3" />

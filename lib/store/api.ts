@@ -39,7 +39,7 @@ export interface UpdateProjectResponse {
 
 export interface Tenant {
   id: string;
-  api_key: string;
+  apiKey: string;
   organization: string;
   status: string;
 }
@@ -50,7 +50,7 @@ export interface CreateTenantRequest {
 
 export interface CreateTenantResponse {
   id: string;
-  api_key: string;
+  apiKey: string;
   organization: string;
   status: string;
 }

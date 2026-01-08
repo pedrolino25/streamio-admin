@@ -41,25 +41,38 @@ export function Toast({
   className,
 }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [isMounted, setIsMounted] = useState(true);
   const Icon = variantIcons[variant];
 
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
         setIsVisible(false);
-        setTimeout(() => onClose?.(), 300);
+        setTimeout(() => {
+          setIsMounted(false);
+          onClose?.();
+        }, 300);
       }, duration);
 
       return () => clearTimeout(timer);
     }
   }, [duration, onClose]);
 
-  if (!isVisible) return null;
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setIsMounted(false);
+      onClose?.();
+    }, 300);
+  };
+
+  if (!isMounted) return null;
 
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-lg border p-4 shadow-lg transition-all",
+        "flex items-start gap-3 rounded-lg border p-4 shadow-lg transition-all duration-300",
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
         variantStyles[variant],
         className
       )}
@@ -73,10 +86,7 @@ export function Toast({
           variant="ghost"
           size="sm"
           className="h-6 w-6 shrink-0 p-0"
-          onClick={() => {
-            setIsVisible(false);
-            setTimeout(() => onClose(), 300);
-          }}
+          onClick={handleClose}
           aria-label="Close notification"
         >
           <X className="h-4 w-4" />

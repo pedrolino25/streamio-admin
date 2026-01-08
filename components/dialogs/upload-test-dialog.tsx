@@ -419,12 +419,7 @@ function UploadTestDialogContent({
                 </div>
               )}
               {error && <ErrorMessage message={error} />}
-              {success && (
-                <SuccessMessage
-                  message="Upload successful!"
-                  details={s3Key ? `S3 Key: ${s3Key}` : undefined}
-                />
-              )}
+              {success && <SuccessMessage message="Upload successful!" />}
             </div>
             <DialogFooter>
               <Button

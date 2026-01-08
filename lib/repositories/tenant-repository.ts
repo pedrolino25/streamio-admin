@@ -1,15 +1,15 @@
 import { logger } from "@/lib/services/logger";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
+import { validateTableName } from "@/lib/utils/validation";
 import {
   DynamoDBDocumentClient,
   PutCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { validateTableName } from "@/lib/utils/validation";
 
 export interface Tenant {
   id: string;
-  api_key: string;
+  apiKey: string;
   organization: string;
   status: string;
 }
@@ -88,7 +88,7 @@ export async function apiKeyExists(
   try {
     const command = new ScanCommand({
       TableName: config.tableName,
-      FilterExpression: "api_key = :apiKey",
+      FilterExpression: "apiKey = :apiKey",
       ExpressionAttributeValues: {
         ":apiKey": apiKey,
       },
@@ -105,4 +105,3 @@ export async function apiKeyExists(
     return false;
   }
 }
-

@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     const tenant: Tenant = {
       id: crypto.randomUUID(),
-      api_key: apiKey,
+      apiKey: apiKey,
       organization: trimmedOrganization,
       status: "active",
     };

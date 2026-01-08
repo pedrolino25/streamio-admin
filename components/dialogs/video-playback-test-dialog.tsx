@@ -1,11 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -28,7 +26,6 @@ import {
 import { SignedUrlProvider, useSignedUrl } from "@/lib/signed-url-context";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Hls from "hls.js";
-import { Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -70,7 +67,31 @@ function VideoPlaybackTestDialogContent({
     }
   }, [initialVideoPath, open, form]);
 
-  // Cleanup HLS instance when component unmounts or URL changes
+  // Auto-play video when initialVideoPath is provided and signed URL is ready
+  useEffect(() => {
+    if (initialVideoPath && open && baseUrl && queryParams) {
+      setError("");
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.src = "";
+      }
+
+      const trimmedPath = initialVideoPath.trim();
+      const pathWithoutLeadingSlash = trimmedPath.startsWith("/")
+        ? trimmedPath.slice(1)
+        : trimmedPath;
+      const baseUrlWithoutTrailingSlash = baseUrl.endsWith("/")
+        ? baseUrl.slice(0, -1)
+        : baseUrl;
+      const url = `${baseUrlWithoutTrailingSlash}/${pathWithoutLeadingSlash}?${queryParams}`;
+      setSignedUrl(url);
+    }
+  }, [initialVideoPath, open, baseUrl, queryParams]);
+
   useEffect(() => {
     return () => {
       if (hlsRef.current) {
@@ -80,75 +101,83 @@ function VideoPlaybackTestDialogContent({
     };
   }, []);
 
-  // Initialize HLS player when signed URL is available
   useEffect(() => {
-    if (!signedUrl || !videoRef.current) return;
+    if (!signedUrl) return;
 
-    const video = videoRef.current;
+    const currentSignedUrl = signedUrl;
 
-    // Clean up previous HLS instance
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
+    const initializeVideoPlayer = () => {
+      if (!videoRef.current || !currentSignedUrl) return;
+
+      const video = videoRef.current;
+
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      if (Hls.isSupported()) {
+        const urlObj = new URL(currentSignedUrl);
+        const queryString = urlObj.search;
+
+        const CustomLoader = class extends Hls.DefaultConfig.loader {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          load(context: any, config: any, callbacks: any) {
+            if (context.url && !context.url.includes("?")) {
+              context.url = context.url + queryString;
+            }
+            return super.load(context, config, callbacks);
+          }
+        };
+
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          loader: CustomLoader,
+        });
+
+        hls.loadSource(currentSignedUrl);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                setError(
+                  "Network error occurred. Please check the URL and try again."
+                );
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                setError("Media error occurred. Trying to recover...");
+                hls.recoverMediaError();
+                break;
+              default:
+                setError(
+                  "Fatal error occurred. Please check the URL and try again."
+                );
+                hls.destroy();
+                break;
+            }
+          }
+        });
+
+        hlsRef.current = hls;
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = currentSignedUrl;
+      } else {
+        setError("HLS playback is not supported in this browser.");
+      }
+    };
+
+    if (!videoRef.current) {
+      const timer = setTimeout(() => {
+        initializeVideoPlayer();
+      }, 100);
+      return () => clearTimeout(timer);
     }
 
-    if (Hls.isSupported()) {
-      // Extract query parameters from the signed URL to append to segment requests
-      const urlObj = new URL(signedUrl);
-      const queryString = urlObj.search;
-
-      // Use hls.js for browsers that don't natively support HLS
-      // Custom loader to append query parameters to all segment requests
-      const CustomLoader = class extends Hls.DefaultConfig.loader {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        load(context: any, config: any, callbacks: any) {
-          // Append query parameters to requests that don't already have them
-          if (context.url && !context.url.includes("?")) {
-            context.url = context.url + queryString;
-          }
-          return super.load(context, config, callbacks);
-        }
-      };
-
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        loader: CustomLoader,
-      });
-
-      hls.loadSource(signedUrl);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              setError(
-                "Network error occurred. Please check the URL and try again."
-              );
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              setError("Media error occurred. Trying to recover...");
-              hls.recoverMediaError();
-              break;
-            default:
-              setError(
-                "Fatal error occurred. Please check the URL and try again."
-              );
-              hls.destroy();
-              break;
-          }
-        }
-      });
-
-      hlsRef.current = hls;
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native HLS support (Safari)
-      video.src = signedUrl;
-    } else {
-      setError("HLS playback is not supported in this browser.");
-    }
+    initializeVideoPlayer();
 
     return () => {
       if (hlsRef.current) {
@@ -167,13 +196,11 @@ function VideoPlaybackTestDialogContent({
       return;
     }
 
-    // Clean up previous HLS instance
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // Use the video URL directly
     const url = `${baseUrl}/${values.videoUrl.trim()}?${queryParams}`;
     setSignedUrl(url);
   };
@@ -199,45 +226,53 @@ function VideoPlaybackTestDialogContent({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Video Playback Test</DialogTitle>
+          <DialogTitle>Video Playback</DialogTitle>
           <DialogDescription>
-            Test HLS video playback by providing a video URL. Video will play in
-            an HLS video player.
+            {initialVideoPath
+              ? "Video player for HLS video playback."
+              : "Test HLS video playback by providing a video URL. Video will play in an HLS video player."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="videoUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Video Path</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="videos/2024/video.m3u8"
-                        {...field}
-                        disabled={loading}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter the path to your HLS video file (should end with
-                      .m3u8)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!initialVideoPath && (
+                <FormField
+                  control={form.control}
+                  name="videoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Video Path</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="videos/2024/video.m3u8"
+                          {...field}
+                          disabled={loading}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the path to your HLS video file (should end with
+                        .m3u8)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {(error || contextError) && (
                 <ErrorMessage message={error || contextError || ""} />
               )}
 
-              {signedUrl && (
+              {loading && !signedUrl && initialVideoPath && (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="lg" />
+                </div>
+              )}
+
+              {(initialVideoPath || signedUrl) && (
                 <div className="space-y-2">
-                  <FormLabel>Video Player</FormLabel>
-                  <div className="rounded-md border border-input bg-muted p-4">
+                  <div className="rounded-md border border-input">
                     <video
                       ref={videoRef}
                       controls
@@ -245,41 +280,9 @@ function VideoPlaybackTestDialogContent({
                       style={{ maxHeight: "500px" }}
                     />
                   </div>
-                  <FormDescription>
-                    Video URL:{" "}
-                    <span className="font-mono text-xs break-all">
-                      {signedUrl}
-                    </span>
-                  </FormDescription>
                 </div>
               )}
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                disabled={loading}
-              >
-                Close
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading || !baseUrl || !queryParams}
-              >
-                {loading ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Play Video
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
           </form>
         </Form>
       </DialogContent>
