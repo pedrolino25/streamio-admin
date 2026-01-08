@@ -1,4 +1,7 @@
-import { AwsCredentialsService } from "@/lib/services/aws-credentials";
+import {
+  createDynamoDBClient,
+  handleCredentialError,
+} from "@/lib/services/aws-credentials";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { VideoRepository } from "./video-repository";
@@ -36,26 +39,23 @@ const createDefaultClient = (): DynamoDBDocumentClient => {
 
 const defaultClient = createDefaultClient();
 
+const awsConfig = {
+  region: REGION,
+  userPoolId: USER_POOL_ID,
+  identityPoolId: IDENTITY_POOL_ID,
+};
+
 export function createVideoRepositoryWithAuth(
   idToken: string
 ): VideoRepository {
-  const credentialsService = new AwsCredentialsService({
-    region: REGION,
-    userPoolId: USER_POOL_ID,
-    identityPoolId: IDENTITY_POOL_ID,
-  });
-
   try {
-    const { client } = credentialsService.createDynamoDBClient(idToken);
+    const { client } = createDynamoDBClient(idToken, awsConfig);
     return new VideoRepository({
       tableName: VIDEOS_TABLE,
       client,
     });
   } catch (error) {
-    credentialsService.handleCredentialError(
-      error,
-      "createVideoRepositoryWithAuth"
-    );
+    handleCredentialError(error, "createVideoRepositoryWithAuth", awsConfig);
     throw error;
   }
 }

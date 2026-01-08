@@ -1,4 +1,7 @@
-import { AwsCredentialsService } from "@/lib/services/aws-credentials";
+import {
+  createDynamoDBClient,
+  handleCredentialError,
+} from "@/lib/services/aws-credentials";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { ProjectRepository } from "./project-repository";
@@ -36,26 +39,23 @@ const createDefaultClient = (): DynamoDBDocumentClient => {
 
 const defaultClient = createDefaultClient();
 
+const awsConfig = {
+  region: REGION,
+  userPoolId: USER_POOL_ID,
+  identityPoolId: IDENTITY_POOL_ID,
+};
+
 export function createProjectRepositoryWithAuth(
   idToken: string
 ): ProjectRepository {
-  const credentialsService = new AwsCredentialsService({
-    region: REGION,
-    userPoolId: USER_POOL_ID,
-    identityPoolId: IDENTITY_POOL_ID,
-  });
-
   try {
-    const { client } = credentialsService.createDynamoDBClient(idToken);
+    const { client } = createDynamoDBClient(idToken, awsConfig);
     return new ProjectRepository({
       tableName: PROJECTS_TABLE,
       client,
     });
   } catch (error) {
-    credentialsService.handleCredentialError(
-      error,
-      "createProjectRepositoryWithAuth"
-    );
+    handleCredentialError(error, "createProjectRepositoryWithAuth", awsConfig);
     throw error;
   }
 }
