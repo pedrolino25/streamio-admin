@@ -1,9 +1,7 @@
 import { ProcessingConfiguration } from "@/lib/schemas/upload-schemas";
-import { mapHttpStatusToErrorCode } from "@/lib/services/error-transformer";
-import { ErrorCode } from "@/lib/types/errors";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-// Type definitions (moved from services)
+// Type definitions
 export interface Project {
   id: string;
   tenantId: string;
@@ -63,6 +61,7 @@ export interface Video {
   projectId: string;
   path: string;
   status: string;
+  videoTitle?: string;
   createdAt?: string;
   updatedAt?: string;
   videoTime?: number;
@@ -83,106 +82,34 @@ export interface WebhookTestResponse {
   error?: string;
 }
 
-interface RtkQueryErrorData {
-  code?: ErrorCode;
-  message?: string;
-  details?: string;
-}
-
-// External API - uses API keys
 const EXTERNAL_API_BASE_URL = "https://api.stream-io.cloud";
 
-// Internal API - uses auth tokens
-const internalApiBaseQuery = fetchBaseQuery({
-  baseUrl: "",
+const externalBaseQuery = fetchBaseQuery({
+  baseUrl: EXTERNAL_API_BASE_URL,
 });
 
-// Wrapper to transform X-Auth-Token to Authorization
-const internalApiBaseQueryWithTransform = async (
-  args: Parameters<typeof internalApiBaseQuery>[0],
-  api: Parameters<typeof internalApiBaseQuery>[1],
-  extraOptions: Parameters<typeof internalApiBaseQuery>[2]
-) => {
-  const fetchArgs = typeof args === "string" ? { url: args } : args;
-  const queryHeaders = fetchArgs.headers;
-
-  // Extract token from headers (handle both Headers object and plain object)
-  let token: string | null = null;
-  if (queryHeaders instanceof Headers) {
-    token = queryHeaders.get("X-Auth-Token");
-  } else if (queryHeaders && typeof queryHeaders === "object") {
-    const headersObj = queryHeaders as Record<string, string>;
-    token = headersObj["X-Auth-Token"] || null;
-  }
-
-  // Create transformed headers
-  const transformedHeaders = new Headers(
-    queryHeaders instanceof Headers
-      ? queryHeaders
-      : queryHeaders
-      ? (queryHeaders as HeadersInit)
-      : undefined
-  );
-
-  if (token) {
-    transformedHeaders.set("Authorization", `Bearer ${token}`);
-    transformedHeaders.delete("X-Auth-Token");
-  }
-  transformedHeaders.set("Content-Type", "application/json");
-
-  return internalApiBaseQuery(
-    { ...fetchArgs, headers: transformedHeaders },
-    api,
-    extraOptions
-  );
-};
-
-// Error transformer for both APIs
-const transformError = <T = unknown>(result: { error?: unknown; data?: T }) => {
-  if (!result.error) {
-    return { data: result.data as T };
-  }
-
-  const error = result.error as { status?: number; data?: unknown };
-  const status =
-    "status" in error && typeof error.status === "number" ? error.status : 500;
-  const data = (
-    "data" in error ? error.data : null
-  ) as RtkQueryErrorData | null;
-
-  const errorCode = mapHttpStatusToErrorCode(status);
-  const errorMessage =
-    data?.message ||
-    (data && typeof data === "object" && "error" in data
-      ? String((data as { error?: string }).error)
-      : null) ||
-    `HTTP ${status}: Request failed`;
-
-  return {
-    error: {
-      status,
-      data: {
-        code: errorCode,
-        message: errorMessage,
-        details: data?.details,
-      },
-    },
-  };
-};
+const internalBaseQuery = fetchBaseQuery({
+  baseUrl: "",
+  prepareHeaders: (headers) => {
+    const token = headers.get("X-Auth-Token");
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+      headers.delete("X-Auth-Token");
+    }
+    headers.set("Content-Type", "application/json");
+    return headers;
+  },
+});
 
 export const externalApi = createApi({
   reducerPath: "externalApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: EXTERNAL_API_BASE_URL,
-  }),
+  baseQuery: externalBaseQuery,
   tagTypes: ["Project", "Projects", "Videos"],
   endpoints: (builder) => ({
     getProjects: builder.query<Project[], string>({
       query: (apiKey) => ({
         url: "/projects",
-        headers: {
-          "X-Api-Key": apiKey,
-        },
+        headers: { "X-Api-Key": apiKey },
       }),
       transformResponse: (response: { data: Project[]; count: number }) =>
         response.data || [],
@@ -193,11 +120,9 @@ export const externalApi = createApi({
       {
         query: ({ projectName, apiKey }) => ({
           url: `/project?projectName=${encodeURIComponent(projectName)}`,
-          headers: {
-            "X-Api-Key": apiKey,
-          },
+          headers: { "X-Api-Key": apiKey },
         }),
-        providesTags: (result, error, { projectName }) => [
+        providesTags: (_, __, { projectName }) => [
           { type: "Project", id: projectName },
         ],
       }
@@ -211,9 +136,7 @@ export const externalApi = createApi({
         url: "/project",
         method: "POST",
         body: data,
-        headers: {
-          "X-Api-Key": apiKey,
-        },
+        headers: { "X-Api-Key": apiKey },
       }),
       invalidatesTags: ["Projects"],
     }),
@@ -226,11 +149,9 @@ export const externalApi = createApi({
         url: "/project",
         method: "PUT",
         body: data,
-        headers: {
-          "X-Api-Key": apiKey,
-        },
+        headers: { "X-Api-Key": apiKey },
       }),
-      invalidatesTags: (result, error, { data }) => [
+      invalidatesTags: (_, __, { data }) => [
         "Projects",
         { type: "Project", id: data.projectName },
       ],
@@ -244,11 +165,9 @@ export const externalApi = createApi({
         url: "/project",
         method: "DELETE",
         body: { projectName },
-        headers: {
-          "X-Api-Key": apiKey,
-        },
+        headers: { "X-Api-Key": apiKey },
       }),
-      invalidatesTags: (result, error, { projectName }) => [
+      invalidatesTags: (_, __, { projectName }) => [
         "Projects",
         { type: "Project", id: projectName },
       ],
@@ -257,15 +176,26 @@ export const externalApi = createApi({
     getVideos: builder.query<Video[], { projectName: string; apiKey: string }>({
       query: ({ projectName, apiKey }) => ({
         url: `/videos?projectName=${encodeURIComponent(projectName)}`,
-        headers: {
-          "X-Api-Key": apiKey,
-        },
+        headers: { "X-Api-Key": apiKey },
       }),
       transformResponse: (response: { data: Video[]; count: number }) =>
         response.data || [],
-      providesTags: (result, error, { projectName }) => [
+      providesTags: (_, __, { projectName }) => [
         { type: "Videos", id: projectName },
       ],
+    }),
+
+    updateVideo: builder.mutation<
+      Video,
+      { videoId: string; videoTitle: string; apiKey: string }
+    >({
+      query: ({ videoId, videoTitle, apiKey }) => ({
+        url: "/video",
+        method: "PUT",
+        body: { videoId, videoTitle },
+        headers: { "X-Api-Key": apiKey },
+      }),
+      invalidatesTags: ["Videos"],
     }),
 
     deleteVideo: builder.mutation<void, { videoId: string; apiKey: string }>({
@@ -273,34 +203,22 @@ export const externalApi = createApi({
         url: "/video",
         method: "DELETE",
         body: { videoId },
-        headers: {
-          "X-Api-Key": apiKey,
-        },
+        headers: { "X-Api-Key": apiKey },
       }),
       invalidatesTags: ["Videos"],
     }),
   }),
 });
 
-// Internal API slice - for Next.js API routes
 export const internalApi = createApi({
   reducerPath: "internalApi",
-  baseQuery: async (args, api, extraOptions) => {
-    const result = await internalApiBaseQueryWithTransform(
-      args,
-      api,
-      extraOptions
-    );
-    return transformError(result);
-  },
+  baseQuery: internalBaseQuery,
   tagTypes: ["Tenant", "Tenants"],
   endpoints: (builder) => ({
     getTenants: builder.query<Tenant[], string>({
       query: (token) => ({
         url: "/api/tenants",
-        headers: {
-          "X-Auth-Token": token,
-        },
+        headers: { "X-Auth-Token": token },
       }),
       providesTags: ["Tenants"],
     }),
@@ -313,9 +231,7 @@ export const internalApi = createApi({
         url: "/api/tenants",
         method: "POST",
         body: data,
-        headers: {
-          "X-Auth-Token": token,
-        },
+        headers: { "X-Auth-Token": token },
       }),
       invalidatesTags: ["Tenants"],
     }),
@@ -330,7 +246,7 @@ export const internalApi = createApi({
   }),
 });
 
-// Export hooks from external API
+// Export hooks
 export const {
   useGetProjectsQuery,
   useGetProjectQuery,
@@ -338,10 +254,10 @@ export const {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
   useGetVideosQuery,
+  useUpdateVideoMutation,
   useDeleteVideoMutation,
 } = externalApi;
 
-// Export hooks from internal API
 export const {
   useGetTenantsQuery,
   useCreateTenantMutation,

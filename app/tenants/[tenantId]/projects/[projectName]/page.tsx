@@ -1,14 +1,15 @@
 "use client";
 
-import { DeleteProjectDialog } from "@/components/delete-project-dialog";
-import { ProjectMetricsCards } from "@/components/project-metrics-cards";
+import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
+import { ProjectMetricsCards } from "@/components/cards/project-metrics-cards";
 import { ProjectSelector } from "@/components/project-selector";
-import { ProjectsTable } from "@/components/projects-table";
-import { ProtectedRoute } from "@/components/protected-route";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ProjectsTable } from "@/components/tables/projects-table";
+import { ProtectedRoute } from "@/components/layout/protected-route";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -49,10 +50,11 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/components/layout/sidebar";
 import { useToast } from "@/components/ui/toast-container";
-import { VideosTable } from "@/components/videos-table";
-import { WebhookTestDialogControlled } from "@/components/webhook-test-dialog-controlled";
+import { VideosTable } from "@/components/tables/videos-table";
+import { UploadTestDialog } from "@/components/dialogs/upload-test-dialog";
+import { WebhookTestDialogControlled } from "@/components/dialogs/webhook-test-dialog-controlled";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { useProject } from "@/lib/hooks/use-project";
 import { useProjectMutations, useProjects } from "@/lib/hooks/use-projects";
@@ -75,6 +77,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Upload,
   Video,
   Webhook,
 } from "lucide-react";
@@ -93,6 +96,7 @@ export default function ProjectDetailPage() {
   const [testWebhookOpen, setTestWebhookOpen] = useState(false);
   const [createProjectDialogOpen, setCreateProjectDialogOpen] = useState(false);
   const [webhookDialogOpen, setWebhookDialogOpen] = useState(false);
+  const [uploadTestDialogOpen, setUploadTestDialogOpen] = useState(false);
 
   const tenantId = params?.tenantId as string;
   const projectName = params?.projectName
@@ -594,6 +598,16 @@ export default function ProjectDetailPage() {
                     total
                   </CardDescription>
                 </div>
+                <CardAction>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setUploadTestDialogOpen(true)}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Video
+                  </Button>
+                </CardAction>
               </CardHeader>
               <CardContent className="bg-card p-0">
                 {videosLoading ? (
@@ -624,6 +638,12 @@ export default function ProjectDetailPage() {
                 )}
               </CardContent>
             </Card>
+            <UploadTestDialog
+              open={uploadTestDialogOpen}
+              onOpenChange={setUploadTestDialogOpen}
+              apiKey={apiKey}
+              projectName={projectName}
+            />
           </div>
         );
 

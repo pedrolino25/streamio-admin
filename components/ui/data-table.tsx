@@ -58,8 +58,36 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
+
+  const initialColumnVisibility = React.useMemo(() => {
+    const visibility: VisibilityState = {};
+    columns.forEach((col) => {
+      const accessorKey =
+        "accessorKey" in col
+          ? (col.accessorKey as string | undefined)
+          : undefined;
+      const colId = "id" in col ? (col.id as string | undefined) : undefined;
+      const key = accessorKey || colId;
+
+      if (
+        key &&
+        "meta" in col &&
+        col.meta &&
+        typeof col.meta === "object" &&
+        "defaultHidden" in col.meta
+      ) {
+        if (col.meta.defaultHidden === true) {
+          visibility[key] = false;
+        }
+      } else if (key && "defaultHidden" in col && col.defaultHidden === true) {
+        visibility[key] = false;
+      }
+    });
+    return visibility;
+  }, [columns]);
+
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>(initialColumnVisibility);
   const [rowSelection, setRowSelection] = React.useState({});
   const [internalSearchValue, setInternalSearchValue] = React.useState("");
 

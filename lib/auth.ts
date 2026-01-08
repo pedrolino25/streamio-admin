@@ -15,7 +15,7 @@ const CLIENT_ID = (process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "").trim();
 const IDENTITY_POOL_ID = (
   process.env.NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID || ""
 ).trim();
-const REGION = (process.env.NEXT_PUBLIC_AWS_REGION || "eu-west-2").trim();
+const REGION = (process.env.AWS_REGION || "eu-west-2").trim();
 
 const STORAGE_KEY = "auth_data";
 

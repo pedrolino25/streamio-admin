@@ -6,17 +6,20 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Video } from "@/lib/store/api";
+import { formatDate } from "@/lib/utils/date-utils";
 import {
-  formatDate,
-  formatElapsedProcessingTime,
-  formatProcessingDuration,
-} from "@/lib/utils/date-utils";
+  formatConfiguration,
+  formatFileSize,
+  formatVideoTime,
+  getVideoStatusVariant,
+} from "@/lib/utils/video-formatters";
 import { ColumnDef } from "@tanstack/react-table";
-import { Film, Play, RefreshCw, Upload } from "lucide-react";
+import { Film, Pencil, Play, RefreshCw } from "lucide-react";
 import * as React from "react";
-import { DeleteVideoDialog } from "./delete-video-dialog";
-import { UploadTestDialog } from "./upload-test-dialog";
-import { VideoPlaybackTestDialog } from "./video-playback-test-dialog";
+import { DeleteVideoDialog } from "@/components/dialogs/delete-video-dialog";
+import { EditVideoDialog } from "@/components/dialogs/edit-video-dialog";
+import { VideoPlaybackTestDialog } from "@/components/dialogs/video-playback-test-dialog";
+import { ProcessingTimeCell } from "./cells/processing-time-cell";
 
 interface VideosTableProps {
   videos: Video[];
@@ -26,105 +29,6 @@ interface VideosTableProps {
   refreshing?: boolean;
 }
 
-function ProcessingTimeDisplay({
-  startTimestamp,
-  endTimestamp,
-}: {
-  startTimestamp?: string | number | null;
-  endTimestamp?: string | number | null;
-}) {
-  const [, setTick] = React.useState(0);
-
-  React.useEffect(() => {
-    if (!startTimestamp || endTimestamp) {
-      return;
-    }
-    const interval = setInterval(() => {
-      setTick((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [startTimestamp, endTimestamp]);
-
-  if (!startTimestamp) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-
-  if (endTimestamp) {
-    return (
-      <span>{formatProcessingDuration(startTimestamp, endTimestamp)}</span>
-    );
-  }
-
-  return (
-    <span className="flex items-center gap-2">
-      <LoadingSpinner size="sm" />
-      {formatElapsedProcessingTime(startTimestamp)}
-    </span>
-  );
-}
-
-function formatFileSize(sizeMB?: number): string {
-  if (!sizeMB) return "—";
-  if (sizeMB < 1) {
-    return `${(sizeMB * 1024).toFixed(2)} KB`;
-  }
-  return `${sizeMB.toFixed(2)} MB`;
-}
-
-function formatVideoTime(seconds?: number): string {
-  if (!seconds) return "—";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  const parts: string[] = [];
-  if (hours > 0) {
-    parts.push(`${hours} h`);
-  }
-  if (minutes > 0) {
-    parts.push(`${minutes} min`);
-  }
-  if (secs > 0 && hours === 0) {
-    parts.push(`${secs} sec`);
-  }
-
-  return parts.length > 0 ? parts.join(" ") : "0 sec";
-}
-
-function formatConfiguration(config?: Video["configuration"]): string {
-  if (!config) return "—";
-  const parts: string[] = [];
-  if (config.videoQuality) {
-    parts.push(`Quality: ${config.videoQuality}`);
-  }
-  if (config.maxResolution) {
-    parts.push(`Res: ${config.maxResolution}`);
-  }
-  if (config.thumbnailImage) {
-    parts.push(`Thumb: ${config.thumbnailImage}`);
-  }
-  if (config.previewImages) {
-    parts.push("Previews");
-  }
-  return parts.length > 0 ? parts.join(", ") : "—";
-}
-
-function getStatusVariant(
-  status: Video["status"]
-): "default" | "secondary" | "destructive" | "outline" {
-  const statusUpper = status.toUpperCase();
-  switch (statusUpper) {
-    case "PROCESSED":
-      return "default";
-    case "PROCESSING":
-    case "UPLOADING":
-      return "secondary";
-    case "FAILED":
-      return "destructive";
-    default:
-      return "outline";
-  }
-}
 
 export function VideosTable({
   videos,
@@ -134,10 +38,11 @@ export function VideosTable({
   refreshing = false,
 }: VideosTableProps) {
   const [testPlaybackOpen, setTestPlaybackOpen] = React.useState(false);
-  const [testUploadOpen, setTestUploadOpen] = React.useState(false);
   const [selectedVideoPath, setSelectedVideoPath] = React.useState<
     string | null
   >(null);
+  const [editVideoOpen, setEditVideoOpen] = React.useState(false);
+  const [selectedVideo, setSelectedVideo] = React.useState<Video | null>(null);
 
   const handlePlayVideo = (videoPath: string) => {
     setSelectedVideoPath(videoPath);
@@ -154,6 +59,42 @@ export function VideosTable({
             {row.getValue("id")}
           </code>
         ),
+        enableHiding: true,
+        meta: {
+          defaultHidden: true,
+        },
+      },
+      {
+        accessorKey: "videoTitle",
+        header: "Title",
+        cell: ({ row }) => {
+          const video = row.original;
+          const videoTitle = row.getValue("videoTitle") as string | undefined;
+          return (
+            <div className="flex items-center justify-between gap-2">
+              {videoTitle ? (
+                <span className="text-sm text-foreground font-medium">
+                  {videoTitle}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 ml-auto"
+                onClick={() => {
+                  setSelectedVideo(video);
+                  setEditVideoOpen(true);
+                }}
+                title="Edit video title"
+                aria-label={`Edit title for video ${video.id}`}
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            </div>
+          );
+        },
         enableHiding: true,
       },
       {
@@ -177,7 +118,7 @@ export function VideosTable({
                   Play video
                 </Button>
               ) : (
-                <Badge variant={getStatusVariant(status)}>{status}</Badge>
+                <Badge variant={getVideoStatusVariant(status)}>{status}</Badge>
               )}
             </div>
           );
@@ -239,6 +180,9 @@ export function VideosTable({
           );
         },
         enableHiding: true,
+        meta: {
+          defaultHidden: true,
+        },
       },
       {
         accessorKey: "processingStartTimestamp",
@@ -246,7 +190,7 @@ export function VideosTable({
         cell: ({ row }) => {
           const video = row.original;
           return (
-            <ProcessingTimeDisplay
+            <ProcessingTimeCell
               startTimestamp={video.processingStartTimestamp}
               endTimestamp={video.processingEndTimestamp}
             />
@@ -268,6 +212,9 @@ export function VideosTable({
           );
         },
         enableHiding: true,
+        meta: {
+          defaultHidden: true,
+        },
       },
       {
         id: "actions",
@@ -282,6 +229,7 @@ export function VideosTable({
               <DeleteVideoDialog
                 videoId={video.id}
                 videoPath={video.path}
+                videoStatus={video.status}
                 apiKey={apiKey}
                 onSuccess={() => {
                   if (onRefresh) {
@@ -324,45 +272,29 @@ export function VideosTable({
           </div>
         }
         headerActions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
-                if (onRefresh) {
-                  onRefresh();
-                }
-              }}
-              disabled={refreshing}
-            >
-              {refreshing ? (
-                <>
-                  <LoadingSpinner size="sm" className="mr-2" />
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Refresh
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTestUploadOpen(true)}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Test
-            </Button>
-          </>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (onRefresh) {
+                onRefresh();
+              }
+            }}
+            disabled={refreshing}
+          >
+            {refreshing ? (
+              <>
+                <LoadingSpinner size="sm" className="mr-2" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </>
+            )}
+          </Button>
         }
-      />
-      <UploadTestDialog
-        open={testUploadOpen}
-        onOpenChange={setTestUploadOpen}
-        apiKey={apiKey}
-        projectName={projectName}
       />
       <VideoPlaybackTestDialog
         open={testPlaybackOpen}
@@ -376,6 +308,25 @@ export function VideosTable({
         initialVideoPath={selectedVideoPath || undefined}
         projectName={projectName}
       />
+      {selectedVideo && (
+        <EditVideoDialog
+          videoId={selectedVideo.id}
+          currentTitle={selectedVideo.videoTitle}
+          apiKey={apiKey}
+          open={editVideoOpen}
+          onOpenChange={(open) => {
+            setEditVideoOpen(open);
+            if (!open) {
+              setSelectedVideo(null);
+            }
+          }}
+          onSuccess={() => {
+            if (onRefresh) {
+              onRefresh();
+            }
+          }}
+        />
+      )}
     </>
   );
 }

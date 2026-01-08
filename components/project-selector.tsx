@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/layout/sidebar";
 import { ChevronsUpDown, Folder, Plus } from "lucide-react";
 import * as React from "react";
 

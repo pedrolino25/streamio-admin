@@ -9,7 +9,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ExternalLink, Folder, FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { DeleteProjectDialog } from "./delete-project-dialog";
+import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
 
 interface ProjectsTableProps {
   projects: Project[];

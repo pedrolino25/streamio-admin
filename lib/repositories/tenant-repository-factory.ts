@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import * as tenantRepository from "./tenant-repository";
 
-const REGION = (process.env.NEXT_PUBLIC_AWS_REGION || "eu-west-2").trim();
+const REGION = (process.env.AWS_REGION || "eu-west-2").trim();
 const USER_POOL_ID = (
   process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || ""
 ).trim();
@@ -20,13 +20,10 @@ function createDefaultClient(): DynamoDBDocumentClient {
     region: REGION,
   };
 
-  if (
-    process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID &&
-    process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY
-  ) {
+  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
     clientConfig.credentials = {
-      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     };
   }
 
@@ -83,4 +80,3 @@ export async function tenantApiKeyExists(apiKey: string, idToken?: string) {
 }
 
 export type { Tenant } from "./tenant-repository";
-

@@ -45,8 +45,8 @@ NEXT_PUBLIC_AWS_REGION=eu-west-2
 PROJECTS_TABLE=streamio-projects-prod
 
 # Optional: AWS Credentials (if not using Cognito Identity Pool)
-# NEXT_PUBLIC_AWS_ACCESS_KEY_ID=your-access-key
-# NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY=your-secret-key
+# AWS_ACCESS_KEY_ID=your-access-key
+# AWS_SECRET_ACCESS_KEY=your-secret-key
 
 # Optional: Upload Test Feature
 NEXT_PUBLIC_UPLOAD_LAMBDA_FUNCTION_NAME=streamio-upload-url-prod
@@ -67,13 +67,13 @@ npm run dev
 - `NEXT_PUBLIC_COGNITO_USER_POOL_ID` - Cognito User Pool ID
 - `NEXT_PUBLIC_COGNITO_CLIENT_ID` - Cognito App Client ID
 - `NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID` - Cognito Identity Pool ID
-- `NEXT_PUBLIC_AWS_REGION` - AWS region (default: `eu-west-2`)
+- `AWS_REGION` - AWS region (default: `eu-west-2`)
 - `PROJECTS_TABLE` - DynamoDB table name for projects
 
 **Optional:**
 
-- `NEXT_PUBLIC_AWS_ACCESS_KEY_ID` - AWS access key (if not using Cognito Identity Pool)
-- `NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY` - AWS secret key (if not using Cognito Identity Pool)
+- `AWS_ACCESS_KEY_ID` - AWS access key (if not using Cognito Identity Pool)
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key (if not using Cognito Identity Pool)
 - `NEXT_PUBLIC_UPLOAD_LAMBDA_FUNCTION_NAME` - Lambda function name for Upload Test feature
 
 ## Commands

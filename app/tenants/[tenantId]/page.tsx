@@ -1,6 +1,6 @@
 "use client";
 
-import { ProtectedRoute } from "@/components/protected-route";
+import { ProtectedRoute } from "@/components/layout/protected-route";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";

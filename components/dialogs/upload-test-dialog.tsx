@@ -58,6 +58,7 @@ function UploadTestDialogContent({
     resolver: zodResolver(uploadTestSchema),
     defaultValues: {
       path: "",
+      videoTitle: "",
       configuration: {
         videoQuality: "high",
         maxResolution: "source",
@@ -80,6 +81,7 @@ function UploadTestDialogContent({
     file: File,
     apiKey: string,
     path?: string,
+    videoTitle?: string,
     configuration?: {
       videoQuality: "low" | "medium" | "high";
       maxResolution: "720p" | "1080p" | "source";
@@ -92,6 +94,7 @@ function UploadTestDialogContent({
       path: string;
       contentType: string;
       projectName: string;
+      videoTitle?: string;
       configuration?: {
         videoQuality: "low" | "medium" | "high";
         maxResolution: "720p" | "1080p" | "source";
@@ -104,6 +107,10 @@ function UploadTestDialogContent({
       contentType: file.type,
       projectName: projectName,
     };
+
+    if (videoTitle?.trim()) {
+      requestBody.videoTitle = videoTitle.trim();
+    }
 
     if (configuration) {
       const config: {
@@ -178,6 +185,7 @@ function UploadTestDialogContent({
         values.file,
         apiKey,
         values.path?.trim() || "",
+        values.videoTitle?.trim() || "",
         values.configuration
       );
       setSuccess(true);
@@ -197,6 +205,7 @@ function UploadTestDialogContent({
       form.reset();
       form.reset({
         path: "",
+        videoTitle: "",
         configuration: {
           videoQuality: "high",
           maxResolution: "source",
@@ -229,6 +238,27 @@ function UploadTestDialogContent({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <div className="grid gap-4 py-4">
+              <FormField
+                control={form.control}
+                name="videoTitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Video Title (optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter video title"
+                        maxLength={100}
+                        {...field}
+                        disabled={loading}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional title for the video (max 100 characters)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="path"

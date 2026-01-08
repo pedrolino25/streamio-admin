@@ -16,6 +16,10 @@ const processingConfigurationSchema = z.object({
 
 export const uploadTestSchema = z.object({
   path: z.string().optional(),
+  videoTitle: z
+    .string()
+    .max(100, "Video title must be 100 characters or less")
+    .optional(),
   file: z
     .custom<File>((val) => val instanceof File, {
       message: "Please select a file",

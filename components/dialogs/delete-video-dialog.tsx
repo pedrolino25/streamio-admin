@@ -20,6 +20,7 @@ import { useState } from "react";
 interface DeleteVideoDialogProps {
   videoId: string;
   videoPath?: string;
+  videoStatus?: string;
   onSuccess: () => void;
   apiKey: string;
 }
@@ -27,6 +28,7 @@ interface DeleteVideoDialogProps {
 export function DeleteVideoDialog({
   videoId,
   videoPath,
+  videoStatus,
   onSuccess,
   apiKey,
 }: DeleteVideoDialogProps) {
@@ -34,6 +36,9 @@ export function DeleteVideoDialog({
     useDeleteVideoMutation();
   const { success, error: showErrorToast } = useToast();
   const [open, setOpen] = useState(false);
+
+  const isProcessed = videoStatus?.toUpperCase() === "PROCESSED";
+  const canDelete = isProcessed;
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -79,10 +84,22 @@ export function DeleteVideoDialog({
         <Button
           variant="ghost"
           size="sm"
-          className="hover:bg-muted"
-          aria-label={dialogAriaLabel}
+          className={`hover:bg-muted ${!canDelete ? "opacity-50" : ""}`}
+          aria-label={
+            !canDelete
+              ? `${dialogAriaLabel} (cannot delete: video not processed)`
+              : dialogAriaLabel
+          }
+          title={
+            !canDelete
+              ? "Cannot delete: video must be processed first"
+              : "Delete video"
+          }
         >
-          <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+          <Trash2
+            className={`h-4 w-4 ${!canDelete ? "text-muted-foreground" : "text-destructive"}`}
+            aria-hidden="true"
+          />
         </Button>
       </DialogTrigger>
       <DialogContent
@@ -92,8 +109,9 @@ export function DeleteVideoDialog({
         <DialogHeader>
           <DialogTitle>Delete Video</DialogTitle>
           <DialogDescription id="delete-video-description">
-            Are you sure you want to delete this video? This action cannot be
-            undone and will permanently remove the video and all associated data.
+            {canDelete
+              ? "Are you sure you want to delete this video? This action cannot be undone and will permanently remove the video and all associated data."
+              : "This video cannot be deleted because it has not been processed yet. Only processed videos can be deleted."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -109,6 +127,14 @@ export function DeleteVideoDialog({
               <code className="block max-w-full truncate rounded bg-muted px-2 py-1 font-mono text-xs">
                 {videoPath}
               </code>
+            </div>
+          )}
+          {videoStatus && (
+            <div>
+              <p className="mb-1 text-sm font-medium">Status:</p>
+              <span className="inline-block rounded bg-muted px-2 py-1 text-xs font-medium">
+                {videoStatus}
+              </span>
             </div>
           )}
         </div>
@@ -127,8 +153,14 @@ export function DeleteVideoDialog({
             type="button"
             variant="destructive"
             onClick={handleDelete}
-            disabled={loading}
-            aria-label={loading ? "Deleting video..." : "Confirm deletion"}
+            disabled={loading || !canDelete}
+            aria-label={
+              !canDelete
+                ? "Cannot delete: video not processed"
+                : loading
+                ? "Deleting video..."
+                : "Confirm deletion"
+            }
           >
             {loading ? "Deleting..." : "Delete Video"}
           </Button>

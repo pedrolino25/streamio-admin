@@ -1,4 +1,4 @@
-import { ErrorBoundary } from "@/components/error-boundary";
+import { ErrorBoundary } from "@/components/layout/error-boundary";
 import { ToastProvider } from "@/components/ui/toast-container";
 import { AuthProvider } from "@/lib/auth-context";
 import { StoreProvider } from "@/lib/store/provider";

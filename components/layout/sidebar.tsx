@@ -311,7 +311,7 @@ const SidebarInput = React.forwardRef<
       ref={ref}
       data-sidebar="input"
       className={cn(
-        "flex h-8 w-full border border-sidebar-border bg-background px-2 py-1 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50 outline-none ring-sidebar-ring transition-[width,padding] placeholder:transition-colors focus:border-sidebar-ring focus:ring-1 focus:ring-sidebar-ring disabled:cursor-not-allowed disabled:opacity-50 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pr-2",
+        "flex h-8 w-full border border-sidebar-border bg-card px-2 py-1 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50 outline-none ring-sidebar-ring transition-[width,padding] placeholder:transition-colors focus:border-sidebar-ring focus:ring-1 focus:ring-sidebar-ring disabled:cursor-not-allowed disabled:opacity-50 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pr-2",
         className
       )}
       {...props}
@@ -504,7 +504,7 @@ const sidebarMenuButtonVariants = cva(
       variant: {
         default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
+          "bg-card shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
       size: {
         default: "h-8 text-sm",

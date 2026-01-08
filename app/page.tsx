@@ -1,9 +1,9 @@
 "use client";
 
-import { CreateTenantDialog } from "@/components/create-tenant-dialog";
-import { TenantsTable } from "@/components/tenants-table";
-import { ProtectedRoute } from "@/components/protected-route";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { CreateTenantDialog } from "@/components/dialogs/create-tenant-dialog";
+import { TenantsTable } from "@/components/tables/tenants-table";
+import { ProtectedRoute } from "@/components/layout/protected-route";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
   Card,
