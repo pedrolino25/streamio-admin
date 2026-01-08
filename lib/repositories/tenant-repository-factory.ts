@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import * as tenantRepository from "./tenant-repository";
 
-const REGION = (process.env.AWS_REGION || "eu-west-2").trim();
+const REGION = (process.env.NEXT_PUBLIC_AWS_REGION || "eu-west-2").trim();
 const USER_POOL_ID = (
   process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || ""
 ).trim();

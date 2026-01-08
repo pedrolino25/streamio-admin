@@ -67,14 +67,10 @@ npm run dev
 - `NEXT_PUBLIC_COGNITO_USER_POOL_ID` - Cognito User Pool ID
 - `NEXT_PUBLIC_COGNITO_CLIENT_ID` - Cognito App Client ID
 - `NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID` - Cognito Identity Pool ID
-- `AWS_REGION` - AWS region (default: `eu-west-2`)
-- `PROJECTS_TABLE` - DynamoDB table name for projects
-
-**Optional:**
-
+- `NEXT_PUBLIC_AWS_REGION` - AWS region (default: `eu-west-2`)
 - `AWS_ACCESS_KEY_ID` - AWS access key (if not using Cognito Identity Pool)
 - `AWS_SECRET_ACCESS_KEY` - AWS secret key (if not using Cognito Identity Pool)
-- `NEXT_PUBLIC_UPLOAD_LAMBDA_FUNCTION_NAME` - Lambda function name for Upload Test feature
+- `TENANTS_TABLE` - DynamoDB table name for tenants
 
 ## Commands
 
