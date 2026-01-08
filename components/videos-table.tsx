@@ -14,6 +14,7 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import { Film, Play, RefreshCw, Upload } from "lucide-react";
 import * as React from "react";
+import { DeleteVideoDialog } from "./delete-video-dialog";
 import { UploadTestDialog } from "./upload-test-dialog";
 import { VideoPlaybackTestDialog } from "./video-playback-test-dialog";
 
@@ -268,8 +269,33 @@ export function VideosTable({
         },
         enableHiding: true,
       },
+      {
+        id: "actions",
+        header: "Actions",
+        meta: {
+          align: "right",
+        },
+        cell: ({ row }) => {
+          const video = row.original;
+          return (
+            <div className="text-right">
+              <DeleteVideoDialog
+                videoId={video.id}
+                videoPath={video.path}
+                apiKey={apiKey}
+                onSuccess={() => {
+                  if (onRefresh) {
+                    onRefresh();
+                  }
+                }}
+              />
+            </div>
+          );
+        },
+        enableHiding: false,
+      },
     ],
-    []
+    [apiKey, onRefresh]
   );
 
   if (videos.length === 0) {
@@ -288,9 +314,9 @@ export function VideosTable({
         columns={columns}
         data={videos}
         searchPlaceholder="Search videos..."
-        enableColumnVisibility={true}
-        enablePagination={true}
-        enableSorting={true}
+        enableColumnVisibility
+        enablePagination
+        enableSorting
         pageSize={10}
         emptyState={
           <div className="py-12 text-center text-muted-foreground">

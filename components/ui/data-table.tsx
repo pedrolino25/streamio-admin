@@ -47,10 +47,10 @@ export function DataTable<TData, TValue>({
   searchPlaceholder = "Search...",
   searchValue: controlledSearchValue,
   onSearchChange,
-  enableColumnVisibility = true,
-  enablePagination = true,
+  enableColumnVisibility = false,
+  enablePagination = false,
   pageSize = 10,
-  enableSorting = true,
+  enableSorting = false,
   emptyState,
   headerActions,
 }: DataTableProps<TData, TValue>) {
@@ -148,7 +148,7 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border pb-1">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

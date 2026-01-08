@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Project } from "@/lib/store/api";
 import { encodeProjectName } from "@/lib/utils/project-url";
 import { ColumnDef } from "@tanstack/react-table";
-import { ExternalLink, FolderPlus } from "lucide-react";
+import { ExternalLink, Folder, FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { DeleteProjectDialog } from "./delete-project-dialog";
@@ -91,14 +91,15 @@ export function ProjectsTable({
       columns={columns}
       data={projects}
       searchPlaceholder="Search projects..."
-      enableColumnVisibility={true}
-      enablePagination={true}
-      enableSorting={true}
+      enablePagination
+      enableSorting
       pageSize={10}
       emptyState={
-        <div className="py-12 text-center text-muted-foreground">
-          No projects found matching your search.
-        </div>
+        <EmptyState
+          icon={<Folder className="h-6 w-6 text-muted-foreground" />}
+          title="No projects found"
+          description="Create your first project to get started."
+        />
       }
     />
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { ProjectMetricsCards } from "@/components/project-metrics-cards";
 import { ProjectSelector } from "@/components/project-selector";
 import { ProjectsTable } from "@/components/projects-table";
@@ -260,6 +261,23 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleDeleteProject = () => {
+    const remainingProjects = projects.filter(
+      (p) => p.projectName !== projectName
+    );
+    const otherProject = remainingProjects[0];
+
+    if (otherProject) {
+      router.push(
+        `/tenants/${tenantId}/projects/${encodeProjectName(
+          otherProject.projectName
+        )}`
+      );
+    } else {
+      router.push(`/tenants/${tenantId}`);
+    }
+  };
+
   if (!params?.tenantId || !params?.projectName) {
     return (
       <ProtectedRoute>
@@ -452,16 +470,23 @@ export default function ProjectDetailPage() {
                       Project details and settings
                     </CardDescription>
                   </div>
-                  {project.webhookUrl && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTestWebhookOpen(true)}
-                    >
-                      <Webhook className="mr-2 h-4 w-4" />
-                      Webhook Test
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {project.webhookUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setTestWebhookOpen(true)}
+                      >
+                        <Webhook className="mr-2 h-4 w-4" />
+                        Webhook Test
+                      </Button>
+                    )}
+                    <DeleteProjectDialog
+                      projectName={project.projectName}
+                      onSuccess={handleDeleteProject}
+                      apiKey={apiKey}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="bg-card p-3 sm:p-4">
@@ -517,22 +542,11 @@ export default function ProjectDetailPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 shrink-0 p-0"
-                            onClick={() => setWebhookDialogOpen(true)}
+                            onClick={() => handleWebhookDialogOpen(true)}
                             title="Edit webhook URL"
                             aria-label="Edit webhook URL"
                           >
                             <Pencil className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 shrink-0 p-0 text-destructive hover:text-destructive"
-                            onClick={handleRemoveWebhook}
-                            title="Remove webhook URL"
-                            aria-label="Remove webhook URL"
-                            disabled={createProjectLoading}
-                          >
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </div>
                       ) : (
@@ -541,7 +555,7 @@ export default function ProjectDetailPage() {
                             variant="outline"
                             size="sm"
                             className="h-8 text-xs"
-                            onClick={() => setWebhookDialogOpen(true)}
+                            onClick={() => handleWebhookDialogOpen(true)}
                           >
                             <Plus className="mr-1 h-3 w-3" />
                             Add webhook URL

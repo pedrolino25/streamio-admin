@@ -59,7 +59,6 @@ export function SignedUrlProvider({
       setLoading(true);
       setError(null);
 
-      console.log("fetchSignedUrl", apiKey, projectName);
       const response = await fetch(SIGNED_URL_ENDPOINT, {
         method: "POST",
         headers: {

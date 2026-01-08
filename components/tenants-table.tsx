@@ -1,11 +1,11 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tenant } from "@/lib/store/api";
-import { ExternalLink, Building2 } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
+import { Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -21,45 +21,45 @@ export function TenantsTable({ tenants }: TenantsTableProps) {
       {
         accessorKey: "organization",
         header: "Organization",
-        cell: ({ row }) => (
-          <div className="font-medium text-foreground">
-            {row.getValue("organization")}
-          </div>
-        ),
+        cell: ({ row }) => {
+          const tenant = row.original;
+          return (
+            <div
+              className="font-medium text-foreground underline cursor-pointer hover:text-primary transition-colors"
+              onClick={() => router.push(`/tenants/${tenant.id}`)}
+            >
+              {row.getValue("organization")}
+            </div>
+          );
+        },
         enableHiding: false,
       },
       {
         accessorKey: "status",
         header: "Status",
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {row.getValue("status")}
-          </span>
-        ),
-        enableHiding: true,
-      },
-      {
-        id: "actions",
-        header: "Actions",
         meta: {
           align: "right",
         },
         cell: ({ row }) => {
-          const tenant = row.original;
+          const statusValue = String(row.getValue("status"));
+          const status = statusValue.toUpperCase();
+          const isActive = statusValue.toLowerCase() === "active";
           return (
             <div className="text-right">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/tenants/${tenant.id}`)}
+              <Badge
+                variant={isActive ? "outline" : "destructive"}
+                className={
+                  isActive
+                    ? "border-green-500 bg-green-500 text-white hover:bg-green-600"
+                    : ""
+                }
               >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View
-              </Button>
+                {status}
+              </Badge>
             </div>
           );
         },
-        enableHiding: false,
+        enableHiding: true,
       },
     ],
     [router]
@@ -80,9 +80,9 @@ export function TenantsTable({ tenants }: TenantsTableProps) {
       columns={columns}
       data={tenants}
       searchPlaceholder="Search tenants..."
-      enableColumnVisibility={true}
-      enablePagination={true}
-      enableSorting={true}
+      enableColumnVisibility
+      enablePagination
+      enableSorting
       pageSize={10}
       emptyState={
         <div className="py-12 text-center text-muted-foreground">
