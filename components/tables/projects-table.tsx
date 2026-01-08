@@ -1,15 +1,14 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Project } from "@/lib/store/api";
 import { encodeProjectName } from "@/lib/utils/project-url";
 import { ColumnDef } from "@tanstack/react-table";
-import { ExternalLink, Folder, FolderPlus } from "lucide-react";
+import { Folder, FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
 
 interface ProjectsTableProps {
   projects: Project[];
@@ -31,11 +30,23 @@ export function ProjectsTable({
       {
         accessorKey: "projectName",
         header: "Project Name",
-        cell: ({ row }) => (
-          <div className="font-medium text-foreground">
-            {row.getValue("projectName")}
-          </div>
-        ),
+        cell: ({ row }) => {
+          const project = row.original;
+          return (
+            <div
+              className="font-medium text-foreground underline cursor-pointer hover:text-primary transition-colors"
+              onClick={() =>
+                router.push(
+                  `/tenants/${tenantId}/projects/${encodeProjectName(
+                    project.projectName
+                  )}`
+                )
+              }
+            >
+              {row.getValue("projectName")}
+            </div>
+          );
+        },
         enableHiding: false,
       },
       {
@@ -48,20 +59,6 @@ export function ProjectsTable({
           const project = row.original;
           return (
             <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  router.push(
-                    `/tenants/${tenantId}/projects/${encodeProjectName(
-                      project.projectName
-                    )}`
-                  )
-                }
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View
-              </Button>
               <DeleteProjectDialog
                 projectName={project.projectName}
                 onSuccess={onDelete}

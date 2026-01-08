@@ -39,6 +39,7 @@ interface UploadTestDialogProps {
   onOpenChange: (open: boolean) => void;
   apiKey: string;
   projectName: string;
+  onSuccess?: () => void;
 }
 
 function UploadTestDialogContent({
@@ -46,6 +47,7 @@ function UploadTestDialogContent({
   onOpenChange,
   apiKey,
   projectName,
+  onSuccess,
 }: UploadTestDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -191,6 +193,7 @@ function UploadTestDialogContent({
       setSuccess(true);
       setS3Key(s3Key || "");
       setUploadProgress(100);
+      onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
       setUploadProgress(0);
@@ -456,6 +459,7 @@ export function UploadTestDialog({
   onOpenChange,
   apiKey,
   projectName,
+  onSuccess,
 }: UploadTestDialogProps) {
   return (
     <SignedUrlProvider apiKey={apiKey}>
@@ -464,6 +468,7 @@ export function UploadTestDialog({
         onOpenChange={onOpenChange}
         apiKey={apiKey}
         projectName={projectName}
+        onSuccess={onSuccess}
       />
     </SignedUrlProvider>
   );

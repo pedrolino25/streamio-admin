@@ -24,6 +24,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ProjectSelector } from "@/components/project-selector";
 import { ProjectsTable } from "@/components/tables/projects-table";
 import { VideosTable } from "@/components/tables/videos-table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -397,9 +398,22 @@ export default function ProjectDetailPage() {
                       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                         Status
                       </label>
-                      <p className="text-xs text-muted-foreground">
-                        {tenant?.status}
-                      </p>
+                      {tenant?.status && (
+                        <Badge
+                          variant={
+                            tenant.status.toLowerCase() === "active"
+                              ? "outline"
+                              : "destructive"
+                          }
+                          className={
+                            tenant.status.toLowerCase() === "active"
+                              ? "border-green-500 bg-green-500 text-white hover:bg-green-600"
+                              : ""
+                          }
+                        >
+                          {tenant.status.toUpperCase()}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -485,11 +499,6 @@ export default function ProjectDetailPage() {
                         Webhook Test
                       </Button>
                     )}
-                    <DeleteProjectDialog
-                      projectName={project.projectName}
-                      onSuccess={handleDeleteProject}
-                      apiKey={apiKey}
-                    />
                   </div>
                 </div>
               </CardHeader>
@@ -577,6 +586,13 @@ export default function ProjectDetailPage() {
                     </div>
                   </div>
                 </div>
+                <div className="mt-6 flex justify-end">
+                  <DeleteProjectDialog
+                    projectName={project.projectName}
+                    onSuccess={handleDeleteProject}
+                    apiKey={apiKey}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -643,6 +659,7 @@ export default function ProjectDetailPage() {
               onOpenChange={setUploadTestDialogOpen}
               apiKey={apiKey}
               projectName={projectName}
+              onSuccess={refetchVideos}
             />
           </div>
         );

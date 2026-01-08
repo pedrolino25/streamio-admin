@@ -77,12 +77,13 @@ export function DeleteProjectDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+          variant="link"
           size="sm"
-          className="hover:bg-muted"
+          className="text-destructive hover:text-destructive p-0 h-auto font-normal"
           aria-label={dialogAriaLabel}
         >
-          <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+          Delete Project
         </Button>
       </DialogTrigger>
       <DialogContent
