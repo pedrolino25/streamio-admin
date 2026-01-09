@@ -39,7 +39,7 @@ export function ProjectsTable({
                 router.push(
                   `/tenants/${tenantId}/projects/${encodeProjectName(
                     project.projectName
-                  )}`
+                  )}/videos`
                 )
               }
             >

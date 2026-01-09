@@ -37,8 +37,10 @@ export function DeleteVideoDialog({
   const { success, error: showErrorToast } = useToast();
   const [open, setOpen] = useState(false);
 
-  const isProcessed = videoStatus?.toUpperCase() === "PROCESSED";
-  const canDelete = isProcessed;
+  const statusUpper = videoStatus?.toUpperCase() || "";
+  const isProcessed = statusUpper === "PROCESSED";
+  const isProcessing = statusUpper === "PROCESSING" || statusUpper === "UPLOADING";
+  const canDelete = isProcessed && !isProcessing;
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -85,13 +87,18 @@ export function DeleteVideoDialog({
           variant="ghost"
           size="sm"
           className={`hover:bg-muted ${!canDelete ? "opacity-50" : ""}`}
+          disabled={isProcessing}
           aria-label={
-            !canDelete
+            isProcessing
+              ? `${dialogAriaLabel} (cannot delete: video is processing)`
+              : !canDelete
               ? `${dialogAriaLabel} (cannot delete: video not processed)`
               : dialogAriaLabel
           }
           title={
-            !canDelete
+            isProcessing
+              ? "Cannot delete: video is currently processing"
+              : !canDelete
               ? "Cannot delete: video must be processed first"
               : "Delete video"
           }
@@ -109,7 +116,9 @@ export function DeleteVideoDialog({
         <DialogHeader>
           <DialogTitle>Delete Video</DialogTitle>
           <DialogDescription id="delete-video-description">
-            {canDelete
+            {isProcessing
+              ? "This video cannot be deleted because it is currently being processed. Please wait until processing is complete."
+              : canDelete
               ? "Are you sure you want to delete this video? This action cannot be undone and will permanently remove the video and all associated data."
               : "This video cannot be deleted because it has not been processed yet. Only processed videos can be deleted."}
           </DialogDescription>

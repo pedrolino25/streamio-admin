@@ -28,7 +28,6 @@ import {
   UploadTestFormValues,
   uploadTestSchema,
 } from "@/lib/schemas/upload-schemas";
-import { SignedUrlProvider } from "@/lib/signed-url-context";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
@@ -53,7 +52,6 @@ function UploadTestDialogContent({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [s3Key, setS3Key] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<UploadTestFormValues>({
@@ -183,7 +181,7 @@ function UploadTestDialogContent({
     setSuccess(false);
     setUploadProgress(0);
     try {
-      const { s3Key } = await uploadFile(
+      await uploadFile(
         values.file,
         apiKey,
         values.path?.trim() || "",
@@ -191,7 +189,6 @@ function UploadTestDialogContent({
         values.configuration
       );
       setSuccess(true);
-      setS3Key(s3Key || "");
       setUploadProgress(100);
       onSuccess?.();
     } catch (err) {
@@ -219,7 +216,6 @@ function UploadTestDialogContent({
       setError("");
       setSuccess(false);
       setUploadProgress(0);
-      setS3Key("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -462,14 +458,12 @@ export function UploadTestDialog({
   onSuccess,
 }: UploadTestDialogProps) {
   return (
-    <SignedUrlProvider apiKey={apiKey}>
-      <UploadTestDialogContent
-        open={open}
-        onOpenChange={onOpenChange}
-        apiKey={apiKey}
-        projectName={projectName}
-        onSuccess={onSuccess}
-      />
-    </SignedUrlProvider>
+    <UploadTestDialogContent
+      open={open}
+      onOpenChange={onOpenChange}
+      apiKey={apiKey}
+      projectName={projectName}
+      onSuccess={onSuccess}
+    />
   );
 }

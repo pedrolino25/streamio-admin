@@ -1,5 +1,8 @@
 "use client";
 
+import { DeleteVideoDialog } from "@/components/dialogs/delete-video-dialog";
+import { EditVideoDialog } from "@/components/dialogs/edit-video-dialog";
+import { VideoPlaybackTestDialog } from "@/components/dialogs/video-playback-test-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -16,9 +19,6 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import { Film, Pencil, Play, RefreshCw } from "lucide-react";
 import * as React from "react";
-import { DeleteVideoDialog } from "@/components/dialogs/delete-video-dialog";
-import { EditVideoDialog } from "@/components/dialogs/edit-video-dialog";
-import { VideoPlaybackTestDialog } from "@/components/dialogs/video-playback-test-dialog";
 import { ProcessingTimeCell } from "./cells/processing-time-cell";
 
 interface VideosTableProps {
@@ -28,7 +28,6 @@ interface VideosTableProps {
   onRefresh?: () => void;
   refreshing?: boolean;
 }
-
 
 export function VideosTable({
   videos,
@@ -296,18 +295,20 @@ export function VideosTable({
           </Button>
         }
       />
-      <VideoPlaybackTestDialog
-        open={testPlaybackOpen}
-        onOpenChange={(open) => {
-          setTestPlaybackOpen(open);
-          if (!open) {
-            setSelectedVideoPath(null);
-          }
-        }}
-        apiKey={apiKey}
-        initialVideoPath={selectedVideoPath || undefined}
-        projectName={projectName}
-      />
+      {selectedVideoPath && (
+        <VideoPlaybackTestDialog
+          open={testPlaybackOpen}
+          onOpenChange={(open) => {
+            setTestPlaybackOpen(open);
+            if (!open) {
+              setSelectedVideoPath(null);
+            }
+          }}
+          apiKey={apiKey}
+          videoPath={selectedVideoPath}
+          projectName={projectName}
+        />
+      )}
       {selectedVideo && (
         <EditVideoDialog
           videoId={selectedVideo.id}

@@ -1,6 +1,7 @@
 "use client";
 
 import { ProtectedRoute } from "@/components/layout/protected-route";
+import { ProjectLayout } from "@/components/layout/project-layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,9 +21,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { PageHeader } from "@/components/ui/page-header";
-import { useToast } from "@/components/ui/toast-container";
 import { useProjectMutations, useProjects } from "@/lib/hooks/use-projects";
 import { useTenants } from "@/lib/hooks/use-tenants";
 import {
@@ -31,30 +29,26 @@ import {
 } from "@/lib/schemas/project-schemas";
 import { ApplicationError, ErrorCode } from "@/lib/types/errors";
 import { encodeProjectName } from "@/lib/utils/project-url";
+import { useToast } from "@/components/ui/toast-container";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
-interface CreateFirstProjectPageProps {
-  tenantId: string;
-  apiKey: string;
-  tenantName: string;
-}
-
-function CreateFirstProjectPage({
-  tenantId,
-  apiKey,
-  tenantName,
-}: CreateFirstProjectPageProps) {
+export default function NewProjectPage() {
+  const params = useParams();
   const router = useRouter();
+  const tenantId = params?.tenantId as string;
+
+  const { tenants } = useTenants();
+  const tenant = tenants.find((t) => t.id === tenantId);
+  const apiKey = tenant?.apiKey || "";
+  const { success, error: showErrorToast } = useToast();
   const {
     createProject,
     loading,
     error: mutationError,
     clearError,
   } = useProjectMutations();
-  const { success, error: showErrorToast } = useToast();
   const { refetch } = useProjects(apiKey);
 
   const form = useForm<ProjectFormValues>({
@@ -98,25 +92,45 @@ function CreateFirstProjectPage({
 
   const displayError = mutationError?.message || null;
 
+  if (!tenantId) {
+    return (
+      <ProtectedRoute>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <ErrorMessage message="Tenant ID is required" />
+            <Button
+              variant="outline"
+              onClick={() => router.push("/")}
+              className="mt-4"
+            >
+              Back to Tenants
+            </Button>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!tenant) {
+    return (
+      <ProtectedRoute>
+        <ProjectLayout>
+          <div className="flex items-center justify-center py-12">
+            <ErrorMessage message="Tenant not found" />
+          </div>
+        </ProjectLayout>
+      </ProtectedRoute>
+    );
+  }
+
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <PageHeader>
-          <PageHeader.Start>
-            <PageHeader.Text>
-              <PageHeader.Title>Create Your First Project</PageHeader.Title>
-              <PageHeader.Description>
-                Get started by creating your first project for {tenantName}
-              </PageHeader.Description>
-            </PageHeader.Text>
-          </PageHeader.Start>
-        </PageHeader>
-
-        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
+      <ProjectLayout>
+        <div className="mx-auto max-w-2xl">
           <Card className="border shadow-sm">
             <CardHeader className="border-b bg-card px-3 py-2 sm:px-4">
               <CardTitle className="text-base font-semibold">
-                Project Details
+                Create New Project
               </CardTitle>
               <CardDescription className="mt-0.5">
                 Define the name and optional webhook URL for your project
@@ -186,6 +200,14 @@ function CreateFirstProjectPage({
                   )}
                   <div className="flex justify-end gap-3 pt-4">
                     <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.push(`/tenants/${tenantId}/info`)}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
                       type="submit"
                       disabled={loading}
                       aria-label={
@@ -200,107 +222,8 @@ function CreateFirstProjectPage({
             </CardContent>
           </Card>
         </div>
-      </div>
+      </ProjectLayout>
     </ProtectedRoute>
   );
 }
 
-export default function TenantDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const tenantId = params?.tenantId as string;
-
-  const {
-    tenants,
-    loading: tenantsLoading,
-    error: tenantsError,
-  } = useTenants();
-  const tenant = tenants.find((t) => t.id === tenantId);
-  const apiKey = tenant?.apiKey || "";
-  const {
-    projects,
-    loading: projectsLoading,
-    error: projectsError,
-    refetch,
-  } = useProjects(apiKey);
-
-  useEffect(() => {
-    if (!tenantsLoading && !projectsLoading && tenant && projects.length > 0) {
-      const firstProject = projects[0];
-      router.replace(
-        `/tenants/${tenantId}/projects/${encodeProjectName(
-          firstProject.projectName
-        )}/videos`
-      );
-    }
-  }, [tenantsLoading, projectsLoading, tenant, projects, tenantId, router]);
-
-  if (!tenantId) {
-    return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <ErrorMessage message="Tenant ID is required" />
-            <Button
-              variant="outline"
-              onClick={() => router.push("/")}
-              className="mt-4"
-            >
-              Back to Tenants
-            </Button>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  const loading = tenantsLoading || projectsLoading;
-  const error = tenantsError || projectsError;
-
-  if (loading || (tenant && projects.length > 0)) {
-    return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  if (error) {
-    return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <ErrorMessage message={error} className="mb-4" />
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (tenantsError) {
-                  window.location.reload();
-                } else {
-                  refetch();
-                }
-              }}
-              aria-label="Retry"
-            >
-              Try again
-            </Button>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  if (tenant && projects.length === 0) {
-    return (
-      <CreateFirstProjectPage
-        tenantId={tenantId}
-        apiKey={apiKey}
-        tenantName={tenant.organization}
-      />
-    );
-  }
-
-  return null;
-}
