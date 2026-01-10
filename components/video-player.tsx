@@ -148,6 +148,16 @@ interface VideoPlayerProps {
 function VideoPlayer({ videoPath }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const thumbnailPreviewRef = useRef<HTMLDivElement>(null);
+  const [spriteImageUrl, setSpriteImageUrl] = useState<string | null>(null);
+  const [spriteDimensions, setSpriteDimensions] = useState<{
+    width: number;
+    height: number;
+    thumbWidth: number;
+    thumbHeight: number;
+    cols: number;
+    rows: number;
+  } | null>(null);
   const { baseUrl, queryParams } = useVideoPlayerProvider();
 
   const buildUrl = (filename: string): string | null => {
@@ -162,6 +172,132 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
 
   const videoUrl = buildUrl("master.m3u8");
   const thumbnailUrl = buildUrl("thumbnail.jpg");
+  const previewSpriteUrl = buildUrl("preview_sprite.jpg");
+
+  useEffect(() => {
+    if (!previewSpriteUrl) return;
+
+    setSpriteImageUrl(previewSpriteUrl);
+
+    const img = new Image();
+    img.onload = () => {
+      const commonThumbWidths = [160, 320, 240, 200, 120];
+      const spriteWidth = img.width;
+      const spriteHeight = img.height;
+
+      let thumbWidth = 160;
+      let thumbHeight = 90;
+      let cols = Math.floor(spriteWidth / thumbWidth);
+      let rows = Math.floor(spriteHeight / thumbHeight);
+
+      for (const width of commonThumbWidths) {
+        const height = Math.round(width * (9 / 16));
+        const testCols = Math.floor(spriteWidth / width);
+        const testRows = Math.floor(spriteHeight / height);
+        const widthRemainder = spriteWidth % width;
+        const heightRemainder = spriteHeight % height;
+
+        if (widthRemainder < width * 0.1 && heightRemainder < height * 0.1) {
+          thumbWidth = width;
+          thumbHeight = height;
+          cols = testCols;
+          rows = testRows;
+          break;
+        }
+      }
+
+      if (cols === 0) {
+        cols = 10;
+        thumbWidth = Math.floor(spriteWidth / cols);
+        thumbHeight = Math.round(thumbWidth * (9 / 16));
+        rows = Math.floor(spriteHeight / thumbHeight);
+      }
+
+      setSpriteDimensions({
+        width: spriteWidth,
+        height: spriteHeight,
+        thumbWidth,
+        thumbHeight,
+        cols: Math.max(1, cols),
+        rows: Math.max(1, rows),
+      });
+    };
+    img.onerror = () => {
+      setSpriteImageUrl(null);
+      setSpriteDimensions(null);
+    };
+    img.src = previewSpriteUrl;
+  }, [previewSpriteUrl]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const videoContainer = video?.parentElement;
+    const thumbnailPreview = thumbnailPreviewRef.current;
+    if (
+      !video ||
+      !videoContainer ||
+      !thumbnailPreview ||
+      !spriteDimensions ||
+      !spriteImageUrl
+    ) {
+      return;
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!video.duration || !video.readyState) return;
+
+      const rect = videoContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const videoHeight = rect.height;
+      const isNearBottom = y > videoHeight * 0.85;
+
+      if (!isNearBottom) {
+        thumbnailPreview.style.display = "none";
+        return;
+      }
+
+      const percent = Math.max(0, Math.min(1, x / rect.width));
+      const time = percent * video.duration;
+      const totalThumbnails = spriteDimensions.cols * spriteDimensions.rows;
+      const thumbnailIndex = Math.floor(
+        Math.min(time / video.duration, 0.999) * totalThumbnails
+      );
+
+      const col = thumbnailIndex % spriteDimensions.cols;
+      const row = Math.floor(thumbnailIndex / spriteDimensions.cols);
+      const spriteX = col * spriteDimensions.thumbWidth;
+      const spriteY = row * spriteDimensions.thumbHeight;
+      const previewWidth = spriteDimensions.thumbWidth;
+      const previewHeight = spriteDimensions.thumbHeight;
+      const previewLeft = Math.max(
+        10,
+        Math.min(x - previewWidth / 2, rect.width - previewWidth - 10)
+      );
+      const previewTop = Math.max(10, videoHeight - 60 - previewHeight - 10);
+
+      thumbnailPreview.style.display = "block";
+      thumbnailPreview.style.left = `${previewLeft}px`;
+      thumbnailPreview.style.top = `${previewTop}px`;
+      thumbnailPreview.style.backgroundImage = `url(${spriteImageUrl})`;
+      thumbnailPreview.style.backgroundPosition = `-${spriteX}px -${spriteY}px`;
+      thumbnailPreview.style.backgroundSize = `${spriteDimensions.width}px ${spriteDimensions.height}px`;
+      thumbnailPreview.style.width = `${previewWidth}px`;
+      thumbnailPreview.style.height = `${previewHeight}px`;
+    };
+
+    const handleMouseLeave = () => {
+      thumbnailPreview.style.display = "none";
+    };
+
+    videoContainer.addEventListener("mousemove", handleMouseMove);
+    videoContainer.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      videoContainer.removeEventListener("mousemove", handleMouseMove);
+      videoContainer.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [spriteDimensions, spriteImageUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -231,7 +367,7 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-md border border-input">
+      <div className="relative rounded-md border border-input">
         <video
           ref={videoRef}
           src={videoUrl}
@@ -242,6 +378,15 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
           style={{ maxHeight: "500px" }}
           poster={thumbnailUrl || undefined}
         />
+        {spriteDimensions && spriteImageUrl && (
+          <div
+            ref={thumbnailPreviewRef}
+            className="absolute pointer-events-none z-10 border-2 border-white shadow-lg rounded bg-black"
+            style={{
+              display: "none",
+            }}
+          />
+        )}
       </div>
     </div>
   );
