@@ -336,9 +336,6 @@ function ColumnVisibilityDropdown<TData>({
                         onChange={(e) =>
                           column.toggleVisibility(e.target.checked)
                         }
-                        style={{
-                          accentColor: "oklch(0.205 0 0)",
-                        }}
                       />
                       <span className="truncate">
                         {typeof column.columnDef.header === "string"
