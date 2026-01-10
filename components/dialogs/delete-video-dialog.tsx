@@ -13,7 +13,7 @@ import {
 import { ErrorMessage } from "@/components/ui/error-message";
 import { useToast } from "@/components/ui/toast-container";
 import { useDeleteVideoMutation } from "@/lib/store/api";
-import { ApplicationError, ErrorCode } from "@/lib/types/errors";
+import { ErrorCode } from "@/lib/types/errors";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -38,19 +38,20 @@ export function DeleteVideoDialog({
   const [open, setOpen] = useState(false);
 
   const statusUpper = videoStatus?.toUpperCase() || "";
-  const isProcessed = statusUpper === "PROCESSED";
-  const isProcessing = statusUpper === "PROCESSING" || statusUpper === "UPLOADING";
-  const canDelete = isProcessed && !isProcessing;
+  const isProcessing =
+    statusUpper === "PROCESSING" || statusUpper === "UPLOADING";
+  const canDelete = !isProcessing;
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
   };
 
   const handleError = (error: unknown) => {
-    const errorData = error as { data?: { code?: ErrorCode; message?: string } };
+    const errorData = error as {
+      data?: { code?: ErrorCode; message?: string };
+    };
     const errorCode = errorData?.data?.code;
-    const errorMessage =
-      errorData?.data?.message || "Failed to delete video";
+    const errorMessage = errorData?.data?.message || "Failed to delete video";
 
     if (errorCode === ErrorCode.UNAUTHORIZED) {
       showErrorToast("Invalid API key. Please check your tenant API key.");
@@ -87,24 +88,22 @@ export function DeleteVideoDialog({
           variant="ghost"
           size="sm"
           className={`hover:bg-muted ${!canDelete ? "opacity-50" : ""}`}
-          disabled={isProcessing}
+          disabled={!canDelete}
           aria-label={
-            isProcessing
+            !canDelete
               ? `${dialogAriaLabel} (cannot delete: video is processing)`
-              : !canDelete
-              ? `${dialogAriaLabel} (cannot delete: video not processed)`
               : dialogAriaLabel
           }
           title={
-            isProcessing
+            !canDelete
               ? "Cannot delete: video is currently processing"
-              : !canDelete
-              ? "Cannot delete: video must be processed first"
               : "Delete video"
           }
         >
           <Trash2
-            className={`h-4 w-4 ${!canDelete ? "text-muted-foreground" : "text-destructive"}`}
+            className={`h-4 w-4 ${
+              !canDelete ? "text-muted-foreground" : "text-destructive"
+            }`}
             aria-hidden="true"
           />
         </Button>
@@ -116,11 +115,9 @@ export function DeleteVideoDialog({
         <DialogHeader>
           <DialogTitle>Delete Video</DialogTitle>
           <DialogDescription id="delete-video-description">
-            {isProcessing
+            {!canDelete
               ? "This video cannot be deleted because it is currently being processed. Please wait until processing is complete."
-              : canDelete
-              ? "Are you sure you want to delete this video? This action cannot be undone and will permanently remove the video and all associated data."
-              : "This video cannot be deleted because it has not been processed yet. Only processed videos can be deleted."}
+              : "Are you sure you want to delete this video? This action cannot be undone and will permanently remove the video and all associated data."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -178,4 +175,3 @@ export function DeleteVideoDialog({
     </Dialog>
   );
 }
-
