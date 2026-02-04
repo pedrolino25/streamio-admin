@@ -367,15 +367,14 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative max-w-full h-full">
       <video
         ref={videoRef}
         src={videoUrl}
         controls
         controlsList="nodownload"
         playsInline
-        className="w-full rounded-md"
-        style={{ maxHeight: "500px" }}
+        className="w-full h-full object-contain"
         poster={thumbnailUrl || undefined}
       />
       {spriteDimensions && spriteImageUrl && (
@@ -476,7 +475,7 @@ function ImageViewer({ imagePath }: ImageViewerProps) {
   }
 
   return (
-    <picture ref={containerRef} className="h-full">
+    <picture ref={containerRef} className="h-full w-full flex items-center justify-center">
       <source srcSet={urls.webp} type="image/webp" />
       <img
         src={urls.jpg}

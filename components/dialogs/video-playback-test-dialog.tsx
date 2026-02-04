@@ -27,13 +27,11 @@ function VideoPlaybackTestDialogContent({
   videoPath: string;
 }) {
   return (
-    <ContentProvider apiKey={apiKey} projectName={projectName}>
-      <div className="space-y-2">
-        <div className="rounded-md border border-input">
+    <div className="rounded-md p-2 border border-input min-h-[calc(90vh-150px)] w-full flex items-center justify-center">
+      <ContentProvider apiKey={apiKey} projectName={projectName}>
         <VideoPlayer videoPath={videoPath} />
-        </div>
-      </div>
-    </ContentProvider>
+      </ContentProvider>
+    </div>
   );
 }
 
@@ -46,7 +44,7 @@ export function VideoPlaybackTestDialog({
 }: VideoPlaybackTestDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[900px] h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Video Playback</DialogTitle>
           <DialogDescription>

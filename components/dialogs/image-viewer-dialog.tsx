@@ -26,16 +26,16 @@ export function ImageViewerDialog({
 }: ImageViewerDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-[95vw] sm:max-w-[900px] h-[90vh] overflow-y-auto">
+        <DialogHeader className="h-fit">
           <DialogTitle>Image Viewer</DialogTitle>
           <DialogDescription>View processed image content.</DialogDescription>
         </DialogHeader>
-        <ContentProvider apiKey={apiKey} projectName={projectName}>
-          <div className="relative rounded-md border border-input bg-muted/50 flex items-center justify-center min-h-[200px] max-h-[80vh] w-full">
+        <div className="relative p-2 rounded-md border border-input bg-muted/50 flex items-center justify-center min-h-[calc(90vh-150px)] w-full">
+          <ContentProvider apiKey={apiKey} projectName={projectName}>
             <ImageViewer imagePath={imagePath} />
-          </div>
-        </ContentProvider>
+          </ContentProvider>
+        </div> 
       </DialogContent>
     </Dialog>
   );
