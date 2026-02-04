@@ -83,7 +83,7 @@ export default function NewProjectPage() {
       router.push(
         `/tenants/${tenantId}/projects/${encodeProjectName(
           values.projectName
-        )}/videos`
+        )}/content`
       );
     } catch (error) {
       handleError(error);

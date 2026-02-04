@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { VideoPlayer, VideoPlayerProvider } from "@/components/video-player";
+import { VideoPlayer, ContentProvider } from "@/components/content-player";
 
 interface VideoPlaybackTestDialogProps {
   open: boolean;
@@ -27,9 +27,9 @@ function VideoPlaybackTestDialogContent({
   videoPath: string;
 }) {
   return (
-    <VideoPlayerProvider apiKey={apiKey} projectName={projectName}>
+    <ContentProvider apiKey={apiKey} projectName={projectName}>
       <VideoPlayer videoPath={videoPath} />
-    </VideoPlayerProvider>
+    </ContentProvider>
   );
 }
 

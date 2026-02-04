@@ -2,24 +2,25 @@
 
 import { logger } from "@/lib/services/logger";
 import Hls from "hls.js";
+import Image from "next/image";
 import {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 
-export interface VideoPlayerProviderResponse {
+export interface ContentProviderResponse {
   baseUrl: string;
   queryParams: string;
   expiresAt?: number;
 }
 
-export interface VideoPlayerProviderContextType {
+export interface ContentProviderContextType {
   baseUrl: string | null;
   queryParams: string | null;
   loading: boolean;
@@ -27,15 +28,15 @@ export interface VideoPlayerProviderContextType {
   refresh: () => Promise<void>;
 }
 
-const VideoPlayerProviderContext = createContext<
-  VideoPlayerProviderContextType | undefined
+const ContentProviderContext = createContext<
+  ContentProviderContextType | undefined
 >(undefined);
 
 const SIGNED_URL_ENDPOINT = "https://api.stream-io.cloud/presigned-play-url";
 const REFRESH_BUFFER = 1 * 60 * 1000;
 const DEFAULT_EXPIRATION = 10 * 60 * 1000;
 
-function VideoPlayerProvider({
+function ContentProvider({
   children,
   apiKey,
   projectName,
@@ -76,7 +77,7 @@ function VideoPlayerProvider({
         throw new Error(errorData.error || `Failed to fetch signed URL`);
       }
 
-      const result: VideoPlayerProviderResponse = await response.json();
+      const result: ContentProviderResponse = await response.json();
       setBaseUrl(result.baseUrl);
       setQueryParams(result.queryParams);
       setExpiresAt(result.expiresAt || Date.now() + DEFAULT_EXPIRATION);
@@ -125,17 +126,17 @@ function VideoPlayerProvider({
   );
 
   return (
-    <VideoPlayerProviderContext.Provider value={value}>
+    <ContentProviderContext.Provider value={value}>
       {baseUrl && queryParams && children}
-    </VideoPlayerProviderContext.Provider>
+    </ContentProviderContext.Provider>
   );
 }
 
-function useVideoPlayerProvider() {
-  const context = useContext(VideoPlayerProviderContext);
+function useContentProvider() {
+  const context = useContext(ContentProviderContext);
   if (context === undefined) {
     throw new Error(
-      "useVideoPlayerProvider must be used within a VideoPlayerProvider"
+      "useContentProvider must be used within a ContentProvider"
     );
   }
   return context;
@@ -158,7 +159,7 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
     cols: number;
     rows: number;
   } | null>(null);
-  const { baseUrl, queryParams } = useVideoPlayerProvider();
+  const { baseUrl, queryParams } = useContentProvider();
 
   const buildUrl = (filename: string): string | null => {
     if (!videoPath || !baseUrl || !queryParams) return null;
@@ -179,7 +180,7 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
 
     setSpriteImageUrl(previewSpriteUrl);
 
-    const img = new Image();
+    const img = document.createElement("img");
     img.onload = () => {
       const commonThumbWidths = [160, 320, 240, 200, 120];
       const spriteWidth = img.width;
@@ -392,4 +393,118 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
   );
 }
 
-export { VideoPlayer, VideoPlayerProvider };
+const IMAGE_VARIANTS = [
+  "input_xlarge.jpg",
+  "input_large.jpg",
+  "input_medium.jpg",
+  "input_small.jpg",
+  "input_thumb.jpg",
+  "input_original.jpg",
+];
+
+interface ImageViewerProps {
+  imagePath: string;
+}
+
+function ImageViewer({ imagePath }: ImageViewerProps) {
+  const { baseUrl, queryParams, loading, error } = useContentProvider();
+  const [variantIndex, setVariantIndex] = useState(0);
+  const [imageError, setImageError] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const imageUrls = useMemo(() => {
+    if (!baseUrl || !queryParams || !imagePath) return [];
+    const cleanPath = imagePath.trim().replace(/^\/+|\/+$/g, "");
+    const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+    return IMAGE_VARIANTS.map(
+      (variant) => `${cleanBaseUrl}/${cleanPath}/${variant}?${queryParams}`
+    );
+  }, [baseUrl, queryParams, imagePath]);
+
+  const currentImageUrl = imageUrls[variantIndex] || null;
+
+  const handleImageError = useCallback(() => {
+    if (variantIndex < IMAGE_VARIANTS.length - 1) {
+      setVariantIndex(variantIndex + 1);
+      setImageError(false);
+      setImageDimensions(null);
+    } else {
+      setImageError(true);
+    }
+  }, [variantIndex]);
+
+  useEffect(() => {
+    if (!currentImageUrl) return;
+
+    const img = document.createElement("img");
+    let cancelled = false;
+    const currentUrl = currentImageUrl;
+
+    img.onload = () => {
+      if (!cancelled && img.src === currentUrl) {
+        setImageDimensions({
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled && img.src === currentUrl) {
+        handleImageError();
+      }
+    };
+    img.src = currentImageUrl;
+
+    return () => {
+      cancelled = true;
+      setImageDimensions(null);
+    };
+  }, [currentImageUrl, variantIndex, handleImageError]);
+
+  if (loading || !currentImageUrl) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-4">
+        <div className="text-sm text-destructive">Failed to load image: {error}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative rounded-md border border-input bg-muted/50 flex items-center justify-center min-h-[200px] max-h-[80vh] overflow-auto">
+      {imageError ? (
+        <div className="py-12 text-center text-muted-foreground">
+          <p>Failed to load image</p>
+        </div>
+      ) : !imageDimensions ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      ) : (
+        <Image
+          key={variantIndex}
+          src={currentImageUrl}
+          alt="Content preview"
+          width={imageDimensions.width}
+          height={imageDimensions.height}
+          className="max-w-full max-h-[80vh] object-contain rounded-md"
+          unoptimized
+          onError={handleImageError}
+        />
+      )}
+    </div>
+  );
+}
+
+export { ContentProvider, ImageViewer, useContentProvider, VideoPlayer };
+

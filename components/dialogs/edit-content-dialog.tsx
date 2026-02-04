@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/components/ui/toast-container";
-import { useUpdateVideoMutation } from "@/lib/store/api";
+import { useUpdateContentMutation } from "@/lib/store/api";
 import { transformRtkQueryError } from "@/lib/utils/error-extractor";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil } from "lucide-react";
@@ -30,18 +30,19 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-const editVideoSchema = z.object({
-  videoTitle: z
+const editContentSchema = z.object({
+  contentTitle: z
     .string()
-    .max(100, "Video title must be 100 characters or less")
+    .max(100, "Content title must be 100 characters or less")
     .optional()
     .or(z.literal("")),
 });
 
-type EditVideoFormValues = z.infer<typeof editVideoSchema>;
+type EditContentFormValues = z.infer<typeof editContentSchema>;
 
-interface EditVideoDialogProps {
-  videoId: string;
+interface EditContentDialogProps {
+  contentId: string;
+  contentType: "video" | "image";
   currentTitle?: string;
   apiKey: string;
   open: boolean;
@@ -49,39 +50,40 @@ interface EditVideoDialogProps {
   onSuccess: () => void;
 }
 
-export function EditVideoDialog({
-  videoId,
+export function EditContentDialog({
+  contentId,
+  contentType,
   currentTitle,
   apiKey,
   open,
   onOpenChange,
   onSuccess,
-}: EditVideoDialogProps) {
-  const [updateVideo, { isLoading: updating, error: updateError }] =
-    useUpdateVideoMutation();
+}: EditContentDialogProps) {
+  const [updateContent, { isLoading: updating, error: updateError }] =
+    useUpdateContentMutation();
   const { success, error: showErrorToast } = useToast();
 
-  const form = useForm<EditVideoFormValues>({
-    resolver: zodResolver(editVideoSchema),
+  const form = useForm<EditContentFormValues>({
+    resolver: zodResolver(editContentSchema),
     defaultValues: {
-      videoTitle: currentTitle || "",
+      contentTitle: currentTitle || "",
     },
   });
 
-  const handleSubmit = async (values: EditVideoFormValues) => {
+  const handleSubmit = async (values: EditContentFormValues) => {
     try {
-      await updateVideo({
-        videoId,
-        videoTitle: values.videoTitle?.trim() || "",
+      await updateContent({
+        contentId,
+        contentTitle: values.contentTitle?.trim() || "",
         apiKey,
       }).unwrap();
-      success("Video title updated successfully");
+      success(`${contentType === "video" ? "Video" : "Image"} title updated successfully`);
       onSuccess();
       handleOpenChange(false);
     } catch (err) {
       const transformedError = transformRtkQueryError(err);
       showErrorToast(
-        transformedError.message || "Failed to update video title"
+        transformedError.message || `Failed to update ${contentType} title`
       );
     }
   };
@@ -89,19 +91,21 @@ export function EditVideoDialog({
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
     if (!newOpen) {
-      form.reset({ videoTitle: currentTitle || "" });
+      form.reset({ contentTitle: currentTitle || "" });
     } else {
-      form.reset({ videoTitle: currentTitle || "" });
+      form.reset({ contentTitle: currentTitle || "" });
     }
   };
+
+  const contentTypeLabel = contentType === "video" ? "Video" : "Image";
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Video Title</DialogTitle>
+          <DialogTitle>Edit {contentTypeLabel} Title</DialogTitle>
           <DialogDescription>
-            Update the title for this video. Leave empty to remove the title.
+            Update the title for this {contentType}. Leave empty to remove the title.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -109,20 +113,20 @@ export function EditVideoDialog({
             <div className="grid gap-4 py-4">
               <FormField
                 control={form.control}
-                name="videoTitle"
+                name="contentTitle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Video Title</FormLabel>
+                    <FormLabel>{contentTypeLabel} Title</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter video title"
+                        placeholder={`Enter ${contentType} title`}
                         maxLength={100}
                         {...field}
                         disabled={updating}
                       />
                     </FormControl>
                     <FormDescription>
-                      Optional title for the video (max 100 characters)
+                      Optional title for the {contentType} (max 100 characters)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -136,7 +140,7 @@ export function EditVideoDialog({
                     updateError.data &&
                     "message" in updateError.data
                       ? String(updateError.data.message)
-                      : "Failed to update video title"
+                      : `Failed to update ${contentType} title`
                   }
                 />
               )}
@@ -170,4 +174,3 @@ export function EditVideoDialog({
     </Dialog>
   );
 }
-

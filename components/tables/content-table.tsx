@@ -1,58 +1,68 @@
 "use client";
 
-import { DeleteVideoDialog } from "@/components/dialogs/delete-video-dialog";
-import { EditVideoDialog } from "@/components/dialogs/edit-video-dialog";
+import { DeleteContentDialog } from "@/components/dialogs/delete-content-dialog";
+import { EditContentDialog } from "@/components/dialogs/edit-content-dialog";
 import { VideoPlaybackTestDialog } from "@/components/dialogs/video-playback-test-dialog";
+import { ImageViewerDialog } from "@/components/dialogs/image-viewer-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Video } from "@/lib/store/api";
+import { Content } from "@/lib/store/api";
 import { formatDate } from "@/lib/utils/date-utils";
 import {
   formatConfiguration,
   formatFileSize,
   formatVideoTime,
-  getVideoStatusVariant,
-} from "@/lib/utils/video-formatters";
+  getContentStatusVariant,
+} from "@/lib/utils/content-formatters";
 import { ColumnDef } from "@tanstack/react-table";
-import { Film, Pencil, Play, RefreshCw } from "lucide-react";
+import { Film, Image, Pencil, Play, RefreshCw, Eye } from "lucide-react";
 import * as React from "react";
 import { ProcessingTimeCell } from "./cells/processing-time-cell";
 
-interface VideosTableProps {
-  videos: Video[];
+interface ContentTableProps {
+  content: Content[];
   apiKey: string;
   projectName: string;
   onRefresh?: () => void;
   refreshing?: boolean;
 }
 
-export function VideosTable({
-  videos,
+export function ContentTable({
+  content,
   apiKey,
   projectName,
   onRefresh,
   refreshing = false,
-}: VideosTableProps) {
+}: ContentTableProps) {
   const [testPlaybackOpen, setTestPlaybackOpen] = React.useState(false);
   const [selectedVideoPath, setSelectedVideoPath] = React.useState<
     string | null
   >(null);
-  const [editVideoOpen, setEditVideoOpen] = React.useState(false);
-  const [selectedVideo, setSelectedVideo] = React.useState<Video | null>(null);
+  const [imageViewerOpen, setImageViewerOpen] = React.useState(false);
+  const [selectedImagePath, setSelectedImagePath] = React.useState<
+    string | null
+  >(null);
+  const [editContentOpen, setEditContentOpen] = React.useState(false);
+  const [selectedContent, setSelectedContent] = React.useState<Content | null>(null);
 
   const handlePlayVideo = (videoPath: string) => {
     setSelectedVideoPath(videoPath);
     setTestPlaybackOpen(true);
   };
 
-  const columns: ColumnDef<Video>[] = React.useMemo(
+  const handleViewImage = (imagePath: string) => {
+    setSelectedImagePath(imagePath);
+    setImageViewerOpen(true);
+  };
+
+  const columns: ColumnDef<Content>[] = React.useMemo(
     () => [
       {
         accessorKey: "id",
-        header: "Video ID",
+        header: "Content ID",
         cell: ({ row }) => (
           <code className="rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
             {row.getValue("id")}
@@ -64,16 +74,34 @@ export function VideosTable({
         },
       },
       {
-        accessorKey: "videoTitle",
+        accessorKey: "contentType",
+        header: "Type",
+        cell: ({ row }) => {
+          const contentType = row.getValue("contentType") as "video" | "image";
+          return (
+            <Badge variant="outline" className="capitalize">
+              {contentType === "video" ? (
+                <Film className="mr-1 h-3 w-3" />
+              ) : (
+                <Image className="mr-1 h-3 w-3" />
+              )}
+              {contentType}
+            </Badge>
+          );
+        },
+        enableHiding: true,
+      },
+      {
+        accessorKey: "contentTitle",
         header: "Title",
         cell: ({ row }) => {
-          const video = row.original;
-          const videoTitle = row.getValue("videoTitle") as string | undefined;
+          const contentItem = row.original;
+          const contentTitle = row.getValue("contentTitle") as string | undefined;
           return (
             <div className="flex items-center justify-between gap-2">
-              {videoTitle ? (
+              {contentTitle ? (
                 <span className="text-sm text-foreground font-medium">
-                  {videoTitle}
+                  {contentTitle}
                 </span>
               ) : (
                 <span className="text-sm text-muted-foreground">—</span>
@@ -83,11 +111,11 @@ export function VideosTable({
                 size="sm"
                 className="h-7 w-7 p-0 ml-auto"
                 onClick={() => {
-                  setSelectedVideo(video);
-                  setEditVideoOpen(true);
+                  setSelectedContent(contentItem);
+                  setEditContentOpen(true);
                 }}
-                title="Edit video title"
-                aria-label={`Edit title for video ${video.id}`}
+                title="Edit content title"
+                aria-label={`Edit title for content ${contentItem.id}`}
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
               </Button>
@@ -101,23 +129,43 @@ export function VideosTable({
         header: "Status",
         cell: ({ row }) => {
           const status = row.getValue("status") as string;
-          const video = row.original;
+          const contentItem = row.original;
+          const isVideo = contentItem.contentType === "video";
+          const isImage = contentItem.contentType === "image";
+          const isProcessed = status.toUpperCase() === "PROCESSED";
+          
           return (
             <div className="flex justify-center">
-              {status.toUpperCase() === "PROCESSED" && video.path ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hover:bg-muted"
-                  onClick={() => handlePlayVideo(video.path)}
-                  title="Play video"
-                  aria-label={`Play video ${video.path}`}
-                >
-                  <Play className="h-4 w-4" aria-hidden="true" />
-                  Play video
-                </Button>
+              {isProcessed && contentItem.path ? (
+                isVideo ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:bg-muted"
+                    onClick={() => handlePlayVideo(contentItem.path)}
+                    title="Play video"
+                    aria-label={`Play video ${contentItem.path}`}
+                  >
+                    <Play className="h-4 w-4" aria-hidden="true" />
+                    Play video
+                  </Button>
+                ) : isImage ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hover:bg-muted"
+                    onClick={() => handleViewImage(contentItem.path)}
+                    title="View image"
+                    aria-label={`View image ${contentItem.path}`}
+                  >
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                    View image
+                  </Button>
+                ) : (
+                  <Badge variant={getContentStatusVariant(status)}>{status}</Badge>
+                )
               ) : (
-                <Badge variant={getVideoStatusVariant(status)}>{status}</Badge>
+                <Badge variant={getContentStatusVariant(status)}>{status}</Badge>
               )}
             </div>
           );
@@ -143,7 +191,12 @@ export function VideosTable({
         accessorKey: "videoTime",
         header: "Duration",
         cell: ({ row }) => {
+          const contentItem = row.original;
           const videoTime = row.getValue("videoTime") as number | undefined;
+          // Only show duration for videos
+          if (contentItem.contentType !== "video") {
+            return <span className="text-sm text-muted-foreground">—</span>;
+          }
           return (
             <span className="text-sm text-foreground">
               {formatVideoTime(videoTime)}
@@ -187,11 +240,11 @@ export function VideosTable({
         accessorKey: "processingStartTimestamp",
         header: "Processing",
         cell: ({ row }) => {
-          const video = row.original;
+          const contentItem = row.original;
           return (
             <ProcessingTimeCell
-              startTimestamp={video.processingStartTimestamp}
-              endTimestamp={video.processingEndTimestamp}
+              startTimestamp={contentItem.processingStartTimestamp}
+              endTimestamp={contentItem.processingEndTimestamp}
             />
           );
         },
@@ -202,7 +255,7 @@ export function VideosTable({
         header: "Configuration",
         cell: ({ row }) => {
           const config = row.getValue("configuration") as
-            | Video["configuration"]
+            | Content["configuration"]
             | undefined;
           return (
             <span className="max-w-xs truncate block text-sm text-muted-foreground">
@@ -222,13 +275,14 @@ export function VideosTable({
           align: "right",
         },
         cell: ({ row }) => {
-          const video = row.original;
+          const contentItem = row.original;
           return (
             <div className="text-right">
-              <DeleteVideoDialog
-                videoId={video.id}
-                videoPath={video.path}
-                videoStatus={video.status}
+              <DeleteContentDialog
+                contentId={contentItem.id}
+                contentPath={contentItem.path}
+                contentType={contentItem.contentType}
+                contentStatus={contentItem.status}
                 apiKey={apiKey}
                 onSuccess={() => {
                   if (onRefresh) {
@@ -245,12 +299,12 @@ export function VideosTable({
     [apiKey, onRefresh]
   );
 
-  if (videos.length === 0) {
+  if (content.length === 0) {
     return (
       <EmptyState
         icon={<Film className="h-6 w-6 text-muted-foreground" />}
-        title="No videos found"
-        description="Videos uploaded for this project will appear here."
+        title="No content found"
+        description="Content uploaded for this project will appear here."
       />
     );
   }
@@ -259,15 +313,15 @@ export function VideosTable({
     <>
       <DataTable
         columns={columns}
-        data={videos}
-        searchPlaceholder="Search videos..."
+        data={content}
+        searchPlaceholder="Search content..."
         enableColumnVisibility
         enablePagination
         enableSorting
         pageSize={10}
         emptyState={
           <div className="py-12 text-center text-muted-foreground">
-            No videos found matching your search.
+            No content found matching your search.
           </div>
         }
         headerActions={
@@ -309,16 +363,31 @@ export function VideosTable({
           projectName={projectName}
         />
       )}
-      {selectedVideo && (
-        <EditVideoDialog
-          videoId={selectedVideo.id}
-          currentTitle={selectedVideo.videoTitle}
-          apiKey={apiKey}
-          open={editVideoOpen}
+      {selectedImagePath && (
+        <ImageViewerDialog
+          open={imageViewerOpen}
           onOpenChange={(open) => {
-            setEditVideoOpen(open);
+            setImageViewerOpen(open);
             if (!open) {
-              setSelectedVideo(null);
+              setSelectedImagePath(null);
+            }
+          }}
+          apiKey={apiKey}
+          imagePath={selectedImagePath}
+          projectName={projectName}
+        />
+      )}
+      {selectedContent && (
+        <EditContentDialog
+          contentId={selectedContent.id}
+          contentType={selectedContent.contentType}
+          currentTitle={selectedContent.contentTitle}
+          apiKey={apiKey}
+          open={editContentOpen}
+          onOpenChange={(open) => {
+            setEditContentOpen(open);
+            if (!open) {
+              setSelectedContent(null);
             }
           }}
           onSuccess={() => {

@@ -22,7 +22,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTenants } from "@/lib/hooks/use-tenants";
 import { decodeProjectName, encodeProjectName } from "@/lib/utils/project-url";
-import { ArrowLeft, Building2, FolderOpen, Video } from "lucide-react";
+import { ArrowLeft, Building2, FileImage, FolderOpen } from "lucide-react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { ReactNode } from "react";
 
@@ -49,7 +49,7 @@ export function ProjectLayout({ children }: ProjectLayoutProps) {
     router.push(
       `/tenants/${tenantId}/projects/${encodeProjectName(
         newProjectName
-      )}/videos`
+      )}/content`
     );
   };
 
@@ -57,7 +57,7 @@ export function ProjectLayout({ children }: ProjectLayoutProps) {
     router.push(`/tenants/${tenantId}/projects/new`);
   };
 
-  const isVideosPage = pathname?.endsWith("/videos");
+  const isContentPage = pathname?.endsWith("/content");
   const isProjectInfoPage =
     pathname?.includes("/projects/") && pathname?.endsWith("/info");
   const isTenantInfoPage = pathname === `/tenants/${tenantId}/info`;
@@ -67,16 +67,16 @@ export function ProjectLayout({ children }: ProjectLayoutProps) {
   // Determine which project to use for navigation
   const activeProjectName = projectName || (firstProject?.projectName ?? "");
 
-  const handleNavigateToVideos = () => {
+  const handleNavigateToContent = () => {
     if (projectName) {
       router.push(
-        `/tenants/${tenantId}/projects/${encodeProjectName(projectName)}/videos`
+        `/tenants/${tenantId}/projects/${encodeProjectName(projectName)}/content`
       );
     } else if (firstProject) {
       router.push(
         `/tenants/${tenantId}/projects/${encodeProjectName(
           firstProject.projectName
-        )}/videos`
+        )}/content`
       );
     }
   };
@@ -119,11 +119,11 @@ export function ProjectLayout({ children }: ProjectLayoutProps) {
                   <>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        onClick={handleNavigateToVideos}
-                        isActive={isVideosPage}
+                        onClick={handleNavigateToContent}
+                        isActive={isContentPage}
                       >
-                        <Video strokeWidth={2} />
-                        <span>Videos</span>
+                        <FileImage strokeWidth={2} />
+                        <span>Content</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>

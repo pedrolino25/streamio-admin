@@ -1,24 +1,30 @@
 import * as z from "zod";
 
 export interface ProcessingConfiguration {
-  videoQuality: "low" | "medium" | "high";
-  maxResolution: "720p" | "1080p" | "source";
+  videoQuality?: "low" | "medium" | "high";
+  maxResolution?: "720p" | "1080p" | "source";
   thumbnailImage?: string;
   previewImages?: boolean;
+  imageQuality?: "low" | "medium" | "high";
+  imageMaxWidth?: number;
+  imageMaxHeight?: number;
 }
 
 const processingConfigurationSchema = z.object({
-  videoQuality: z.enum(["low", "medium", "high"]),
-  maxResolution: z.enum(["720p", "1080p", "source"]),
+  videoQuality: z.enum(["low", "medium", "high"]).optional(),
+  maxResolution: z.enum(["720p", "1080p", "source"]).optional(),
   thumbnailImage: z.string().optional(),
   previewImages: z.boolean().optional(),
+  imageQuality: z.enum(["low", "medium", "high"]).optional(),
+  imageMaxWidth: z.number().optional(),
+  imageMaxHeight: z.number().optional(),
 });
 
 export const uploadTestSchema = z.object({
   path: z.string().optional(),
-  videoTitle: z
+  contentTitle: z
     .string()
-    .max(100, "Video title must be 100 characters or less")
+    .max(100, "Content title must be 100 characters or less")
     .optional(),
   file: z
     .custom<File>((val) => val instanceof File, {

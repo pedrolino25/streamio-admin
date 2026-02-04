@@ -1,30 +1,30 @@
 "use client";
 
-import { Video } from "@/lib/store/api";
+import { Content } from "@/lib/store/api";
 import {
   calculateConversionTimeMetrics,
   calculateProcessingMetrics,
-  calculateVideoStorageMetrics,
+  calculateContentStorageMetrics,
 } from "@/lib/utils/metrics-calculator";
 import { formatDuration } from "@/lib/utils/date-formatters";
 import { Database, PlayCircle, Timer } from "lucide-react";
 import { MetricCard, MetricItem } from "./metric-card";
 
 interface ProjectMetricsCardsProps {
-  videos: Video[];
+  content: Content[];
 }
 
-export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
-  const storageMetrics = calculateVideoStorageMetrics(videos);
-  const processingMetrics = calculateProcessingMetrics(videos);
-  const conversionMetrics = calculateConversionTimeMetrics(videos);
+export function ProjectMetricsCards({ content }: ProjectMetricsCardsProps) {
+  const storageMetrics = calculateContentStorageMetrics(content);
+  const processingMetrics = calculateProcessingMetrics(content);
+  const conversionMetrics = calculateConversionTimeMetrics(content);
 
   return (
     <div className="grid gap-2 md:grid-cols-3">
       <MetricCard
         icon={Database}
-        title="Video Storage"
-        description="Processed videos only"
+        title="Content Storage"
+        description="Processed content only"
       >
         <div className="space-y-2">
           <MetricItem
@@ -33,23 +33,33 @@ export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
           />
           <div className="border-t pt-2">
             <MetricItem
-              value={`${storageMetrics.totalVideoMinutes.toFixed(2)} min`}
-              label="Total video duration"
+              value={`${storageMetrics.videoCount} videos, ${storageMetrics.imageCount} images`}
+              label="Content breakdown"
             />
           </div>
-          <div className="border-t pt-2">
-            <MetricItem
-              value={`${storageMetrics.mbPerMinute.toFixed(2)} MB/min`}
-              label="Storage per minute"
-            />
-          </div>
+          {storageMetrics.totalVideoMinutes > 0 && (
+            <div className="border-t pt-2">
+              <MetricItem
+                value={`${storageMetrics.totalVideoMinutes.toFixed(2)} min`}
+                label="Total video duration"
+              />
+            </div>
+          )}
+          {storageMetrics.totalVideoMinutes > 0 && (
+            <div className="border-t pt-2">
+              <MetricItem
+                value={`${storageMetrics.mbPerMinute.toFixed(2)} MB/min`}
+                label="Storage per minute"
+              />
+            </div>
+          )}
         </div>
       </MetricCard>
 
       <MetricCard
         icon={PlayCircle}
         title="Processing"
-        description="Video processing status"
+        description="Content processing status"
       >
         <div className="space-y-2">
           <MetricItem
@@ -97,3 +107,4 @@ export function ProjectMetricsCards({ videos }: ProjectMetricsCardsProps) {
     </div>
   );
 }
+

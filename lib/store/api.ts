@@ -55,16 +55,17 @@ export interface CreateTenantResponse {
   status: string;
 }
 
-export interface Video {
+export interface Content {
   id: string;
   tenantId: string;
   projectId: string;
   path: string;
+  contentType: "video" | "image";
   status: string;
-  videoTitle?: string;
+  contentTitle?: string;
   createdAt?: string;
   updatedAt?: string;
-  videoTime?: number;
+  videoTime?: number; // Only for videos
   fileSize?: number;
   uploadStartTimestamp?: string;
   processingStartTimestamp?: string;
@@ -104,7 +105,7 @@ const internalBaseQuery = fetchBaseQuery({
 export const externalApi = createApi({
   reducerPath: "externalApi",
   baseQuery: externalBaseQuery,
-  tagTypes: ["Project", "Projects", "Videos"],
+  tagTypes: ["Project", "Projects", "Content"],
   endpoints: (builder) => ({
     getProjects: builder.query<Project[], string>({
       query: (apiKey) => ({
@@ -173,39 +174,39 @@ export const externalApi = createApi({
       ],
     }),
 
-    getVideos: builder.query<Video[], { projectName: string; apiKey: string }>({
+    getContent: builder.query<Content[], { projectName: string; apiKey: string }>({
       query: ({ projectName, apiKey }) => ({
-        url: `/videos?projectName=${encodeURIComponent(projectName)}`,
+        url: `/content?projectName=${encodeURIComponent(projectName)}`,
         headers: { "X-Api-Key": apiKey },
       }),
-      transformResponse: (response: { data: Video[]; count: number }) =>
+      transformResponse: (response: { data: Content[]; count: number }) =>
         response.data || [],
       providesTags: (_, __, { projectName }) => [
-        { type: "Videos", id: projectName },
+        { type: "Content", id: projectName },
       ],
     }),
 
-    updateVideo: builder.mutation<
-      Video,
-      { videoId: string; videoTitle: string; apiKey: string }
+    updateContent: builder.mutation<
+      Content,
+      { contentId: string; contentTitle: string; apiKey: string }
     >({
-      query: ({ videoId, videoTitle, apiKey }) => ({
-        url: "/video",
+      query: ({ contentId, contentTitle, apiKey }) => ({
+        url: "/content",
         method: "PUT",
-        body: { videoId, videoTitle },
+        body: { contentId, contentTitle },
         headers: { "X-Api-Key": apiKey },
       }),
-      invalidatesTags: ["Videos"],
+      invalidatesTags: ["Content"],
     }),
 
-    deleteVideo: builder.mutation<void, { videoId: string; apiKey: string }>({
-      query: ({ videoId, apiKey }) => ({
-        url: "/video",
+    deleteContent: builder.mutation<void, { contentId: string; apiKey: string }>({
+      query: ({ contentId, apiKey }) => ({
+        url: "/content",
         method: "DELETE",
-        body: { videoId },
+        body: { contentId },
         headers: { "X-Api-Key": apiKey },
       }),
-      invalidatesTags: ["Videos"],
+      invalidatesTags: ["Content"],
     }),
   }),
 });
@@ -253,9 +254,9 @@ export const {
   useCreateProjectMutation,
   useUpdateProjectMutation,
   useDeleteProjectMutation,
-  useGetVideosQuery,
-  useUpdateVideoMutation,
-  useDeleteVideoMutation,
+  useGetContentQuery,
+  useUpdateContentMutation,
+  useDeleteContentMutation,
 } = externalApi;
 
 export const {

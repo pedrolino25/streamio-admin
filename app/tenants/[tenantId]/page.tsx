@@ -89,7 +89,7 @@ function CreateFirstProjectPage({
       router.push(
         `/tenants/${tenantId}/projects/${encodeProjectName(
           values.projectName
-        )}/videos`
+        )}/content`
       );
     } catch (error) {
       handleError(error);
@@ -230,7 +230,7 @@ export default function TenantDetailPage() {
       router.replace(
         `/tenants/${tenantId}/projects/${encodeProjectName(
           firstProject.projectName
-        )}/videos`
+        )}/content`
       );
     }
   }, [tenantsLoading, projectsLoading, tenant, projects, tenantId, router]);

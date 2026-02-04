@@ -16,7 +16,7 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (tenantId && projectName) {
       router.replace(
-        `/tenants/${tenantId}/projects/${encodeProjectName(projectName)}/videos`
+        `/tenants/${tenantId}/projects/${encodeProjectName(projectName)}/content`
       );
     }
   }, [tenantId, projectName, router]);

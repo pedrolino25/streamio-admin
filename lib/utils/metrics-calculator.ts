@@ -1,4 +1,4 @@
-import { Video } from "@/lib/store/api";
+import { Content } from "@/lib/store/api";
 
 interface ProcessingTimeResult {
   totalMinutes: number;
@@ -21,10 +21,12 @@ function parseTimestamp(ts: string | number | null | undefined): Date | null {
   }
 }
 
-export interface VideoStorageMetrics {
+export interface ContentStorageMetrics {
   totalFileSizeGB: number;
   totalVideoMinutes: number;
   mbPerMinute: number;
+  videoCount: number;
+  imageCount: number;
 }
 
 export interface ProcessingMetrics {
@@ -38,21 +40,24 @@ export interface ConversionTimeMetrics {
   processedCount: number;
 }
 
-export function calculateVideoStorageMetrics(
-  videos: Video[]
-): VideoStorageMetrics {
-  const processedVideos = videos.filter(
-    (v) => v.status.toUpperCase() === "PROCESSED"
+export function calculateContentStorageMetrics(
+  content: Content[]
+): ContentStorageMetrics {
+  const processedContent = content.filter(
+    (c) => c.status.toUpperCase() === "PROCESSED"
   );
 
-  const totalFileSizeMB = processedVideos.reduce(
-    (sum, video) => sum + (video.fileSize || 0),
+  const totalFileSizeMB = processedContent.reduce(
+    (sum, item) => sum + (item.fileSize || 0),
     0
   );
 
   const totalFileSizeGB = totalFileSizeMB / 1024;
 
-  const totalVideoMinutes = processedVideos.reduce(
+  const videos = processedContent.filter((c) => c.contentType === "video");
+  const images = processedContent.filter((c) => c.contentType === "image");
+
+  const totalVideoMinutes = videos.reduce(
     (sum, video) => sum + (video.videoTime || 0) / 60,
     0
   );
@@ -60,36 +65,42 @@ export function calculateVideoStorageMetrics(
   const mbPerMinute =
     totalVideoMinutes > 0 ? totalFileSizeMB / totalVideoMinutes : 0;
 
-  return { totalFileSizeGB, totalVideoMinutes, mbPerMinute };
+  return {
+    totalFileSizeGB,
+    totalVideoMinutes,
+    mbPerMinute,
+    videoCount: videos.length,
+    imageCount: images.length,
+  };
 }
 
 export function calculateProcessingMetrics(
-  videos: Video[]
+  content: Content[]
 ): ProcessingMetrics {
-  const processedVideos = videos.filter(
-    (v) => v.status.toUpperCase() === "PROCESSED"
+  const processedContent = content.filter(
+    (c) => c.status.toUpperCase() === "PROCESSED"
   );
 
-  const totalProcessing = videos.filter(
-    (v) =>
-      v.status.toUpperCase() === "PROCESSING" ||
-      v.status.toUpperCase() === "UPLOADING"
+  const totalProcessing = content.filter(
+    (c) =>
+      c.status.toUpperCase() === "PROCESSING" ||
+      c.status.toUpperCase() === "UPLOADING"
   ).length;
 
-  const totalFailed = videos.filter(
-    (v) => v.status.toUpperCase() === "FAILED"
+  const totalFailed = content.filter(
+    (c) => c.status.toUpperCase() === "FAILED"
   ).length;
 
-  const totalProcessed = processedVideos.length;
+  const totalProcessed = processedContent.length;
 
   return { totalProcessed, totalProcessing, totalFailed };
 }
 
 export function calculateConversionTimeMetrics(
-  videos: Video[]
+  content: Content[]
 ): ConversionTimeMetrics {
-  const processedVideos = videos.filter(
-    (v) => v.status.toUpperCase() === "PROCESSED"
+  const processedVideos = content.filter(
+    (c) => c.status.toUpperCase() === "PROCESSED" && c.contentType === "video"
   );
 
   const processingTimes: ProcessingTimeResult[] = processedVideos

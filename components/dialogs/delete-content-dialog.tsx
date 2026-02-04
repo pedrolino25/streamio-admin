@@ -12,32 +12,34 @@ import {
 } from "@/components/ui/dialog";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { useToast } from "@/components/ui/toast-container";
-import { useDeleteVideoMutation } from "@/lib/store/api";
+import { useDeleteContentMutation } from "@/lib/store/api";
 import { ErrorCode } from "@/lib/types/errors";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
-interface DeleteVideoDialogProps {
-  videoId: string;
-  videoPath?: string;
-  videoStatus?: string;
+interface DeleteContentDialogProps {
+  contentId: string;
+  contentPath?: string;
+  contentType: "video" | "image";
+  contentStatus?: string;
   onSuccess: () => void;
   apiKey: string;
 }
 
-export function DeleteVideoDialog({
-  videoId,
-  videoPath,
-  videoStatus,
+export function DeleteContentDialog({
+  contentId,
+  contentPath,
+  contentType,
+  contentStatus,
   onSuccess,
   apiKey,
-}: DeleteVideoDialogProps) {
-  const [deleteVideo, { isLoading: loading, error: mutationError }] =
-    useDeleteVideoMutation();
+}: DeleteContentDialogProps) {
+  const [deleteContent, { isLoading: loading, error: mutationError }] =
+    useDeleteContentMutation();
   const { success, error: showErrorToast } = useToast();
   const [open, setOpen] = useState(false);
 
-  const statusUpper = videoStatus?.toUpperCase() || "";
+  const statusUpper = contentStatus?.toUpperCase() || "";
   const isProcessing =
     statusUpper === "PROCESSING" || statusUpper === "UPLOADING";
   const canDelete = !isProcessing;
@@ -51,14 +53,14 @@ export function DeleteVideoDialog({
       data?: { code?: ErrorCode; message?: string };
     };
     const errorCode = errorData?.data?.code;
-    const errorMessage = errorData?.data?.message || "Failed to delete video";
+    const errorMessage = errorData?.data?.message || "Failed to delete content";
 
     if (errorCode === ErrorCode.UNAUTHORIZED) {
       showErrorToast("Invalid API key. Please check your tenant API key.");
     } else if (errorCode === ErrorCode.NOT_FOUND) {
-      showErrorToast("Video not found. It may have already been deleted.");
+      showErrorToast("Content not found. It may have already been deleted.");
     } else if (errorCode === ErrorCode.FORBIDDEN) {
-      showErrorToast("You don't have permission to delete this video.");
+      showErrorToast("You don't have permission to delete this content.");
     } else {
       showErrorToast(errorMessage);
     }
@@ -66,9 +68,9 @@ export function DeleteVideoDialog({
 
   const handleDelete = async () => {
     try {
-      await deleteVideo({ videoId, apiKey }).unwrap();
+      await deleteContent({ contentId, apiKey }).unwrap();
       setOpen(false);
-      success("Video deleted successfully!");
+      success(`${contentType === "video" ? "Video" : "Image"} deleted successfully!`);
       onSuccess();
     } catch (error) {
       handleError(error);
@@ -79,7 +81,8 @@ export function DeleteVideoDialog({
     mutationError && "data" in mutationError
       ? (mutationError.data as { message?: string })?.message || null
       : null;
-  const dialogAriaLabel = `Delete video ${videoId}`;
+  const dialogAriaLabel = `Delete ${contentType} ${contentId}`;
+  const contentTypeLabel = contentType === "video" ? "Video" : "Image";
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -91,13 +94,13 @@ export function DeleteVideoDialog({
           disabled={!canDelete}
           aria-label={
             !canDelete
-              ? `${dialogAriaLabel} (cannot delete: video is processing)`
+              ? `${dialogAriaLabel} (cannot delete: ${contentType} is processing)`
               : dialogAriaLabel
           }
           title={
             !canDelete
-              ? "Cannot delete: video is currently processing"
-              : "Delete video"
+              ? `Cannot delete: ${contentType} is currently processing`
+              : `Delete ${contentType}`
           }
         >
           <Trash2
@@ -110,36 +113,42 @@ export function DeleteVideoDialog({
       </DialogTrigger>
       <DialogContent
         className="max-w-[95vw] sm:max-w-md"
-        aria-describedby="delete-video-description"
+        aria-describedby="delete-content-description"
       >
         <DialogHeader>
-          <DialogTitle>Delete Video</DialogTitle>
-          <DialogDescription id="delete-video-description">
+          <DialogTitle>Delete {contentTypeLabel}</DialogTitle>
+          <DialogDescription id="delete-content-description">
             {!canDelete
-              ? "This video cannot be deleted because it is currently being processed. Please wait until processing is complete."
-              : "Are you sure you want to delete this video? This action cannot be undone and will permanently remove the video and all associated data."}
+              ? `This ${contentType} cannot be deleted because it is currently being processed. Please wait until processing is complete.`
+              : `Are you sure you want to delete this ${contentType}? This action cannot be undone and will permanently remove the ${contentType} and all associated data.`}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
-            <p className="mb-1 text-sm font-medium">Video ID:</p>
+            <p className="mb-1 text-sm font-medium">Content ID:</p>
             <code className="block rounded bg-muted px-2 py-1 font-mono text-xs">
-              {videoId}
+              {contentId}
             </code>
           </div>
-          {videoPath && (
+          <div>
+            <p className="mb-1 text-sm font-medium">Type:</p>
+            <span className="inline-block rounded bg-muted px-2 py-1 text-xs font-medium capitalize">
+              {contentType}
+            </span>
+          </div>
+          {contentPath && (
             <div>
               <p className="mb-1 text-sm font-medium">Path:</p>
               <code className="block max-w-full truncate rounded bg-muted px-2 py-1 font-mono text-xs">
-                {videoPath}
+                {contentPath}
               </code>
             </div>
           )}
-          {videoStatus && (
+          {contentStatus && (
             <div>
               <p className="mb-1 text-sm font-medium">Status:</p>
               <span className="inline-block rounded bg-muted px-2 py-1 text-xs font-medium">
-                {videoStatus}
+                {contentStatus}
               </span>
             </div>
           )}
@@ -162,13 +171,13 @@ export function DeleteVideoDialog({
             disabled={loading || !canDelete}
             aria-label={
               !canDelete
-                ? "Cannot delete: video not processed"
+                ? `Cannot delete: ${contentType} not processed`
                 : loading
-                ? "Deleting video..."
+                ? `Deleting ${contentType}...`
                 : "Confirm deletion"
             }
           >
-            {loading ? "Deleting..." : "Delete Video"}
+            {loading ? "Deleting..." : `Delete ${contentTypeLabel}`}
           </Button>
         </DialogFooter>
       </DialogContent>
