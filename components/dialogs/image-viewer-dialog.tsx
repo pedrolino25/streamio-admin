@@ -2,11 +2,11 @@
 
 import { ContentProvider, ImageViewer } from "@/components/content-player";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 
 interface ImageViewerDialogProps {
@@ -32,7 +32,9 @@ export function ImageViewerDialog({
           <DialogDescription>View processed image content.</DialogDescription>
         </DialogHeader>
         <ContentProvider apiKey={apiKey} projectName={projectName}>
-          <ImageViewer imagePath={imagePath} />
+          <div className="relative rounded-md border border-input bg-muted/50 flex items-center justify-center min-h-[200px] max-h-[80vh] w-full">
+            <ImageViewer imagePath={imagePath} />
+          </div>
         </ContentProvider>
       </DialogContent>
     </Dialog>

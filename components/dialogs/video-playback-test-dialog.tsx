@@ -1,5 +1,6 @@
 "use client";
 
+import { ContentProvider, VideoPlayer } from "@/components/content-player";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { VideoPlayer, ContentProvider } from "@/components/content-player";
 
 interface VideoPlaybackTestDialogProps {
   open: boolean;
@@ -28,7 +28,11 @@ function VideoPlaybackTestDialogContent({
 }) {
   return (
     <ContentProvider apiKey={apiKey} projectName={projectName}>
-      <VideoPlayer videoPath={videoPath} />
+      <div className="space-y-2">
+        <div className="rounded-md border border-input">
+        <VideoPlayer videoPath={videoPath} />
+        </div>
+      </div>
     </ContentProvider>
   );
 }

@@ -2,16 +2,16 @@
 
 import { logger } from "@/lib/services/logger";
 import Hls from "hls.js";
-import Image from "next/image";
 import {
-    createContext,
-    ReactNode,
-    useCallback,
-    useContext,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 
 export interface ContentProviderResponse {
@@ -367,40 +367,37 @@ function VideoPlayer({ videoPath }: VideoPlayerProps) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="relative rounded-md border border-input">
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          controls
-          controlsList="nodownload"
-          playsInline
-          className="w-full rounded-md"
-          style={{ maxHeight: "500px" }}
-          poster={thumbnailUrl || undefined}
+    <div className="relative">
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        controls
+        controlsList="nodownload"
+        playsInline
+        className="w-full rounded-md"
+        style={{ maxHeight: "500px" }}
+        poster={thumbnailUrl || undefined}
+      />
+      {spriteDimensions && spriteImageUrl && (
+        <div
+          ref={thumbnailPreviewRef}
+          className="absolute pointer-events-none z-10 border-2 border-white shadow-lg rounded bg-black"
+          style={{
+            display: "none",
+          }}
         />
-        {spriteDimensions && spriteImageUrl && (
-          <div
-            ref={thumbnailPreviewRef}
-            className="absolute pointer-events-none z-10 border-2 border-white shadow-lg rounded bg-black"
-            style={{
-              display: "none",
-            }}
-          />
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
 const IMAGE_VARIANTS = [
-  "input_xlarge.jpg",
-  "input_large.jpg",
-  "input_medium.jpg",
-  "input_small.jpg",
-  "input_thumb.jpg",
-  "input_original.jpg",
-];
+  { name: "thumb", width: 150 },
+  { name: "small", width: 480 },
+  { name: "medium", width: 720 },
+  { name: "large", width: 1080 },
+  { name: "xlarge", width: 1920 },
+] as const;
 
 interface ImageViewerProps {
   imagePath: string;
@@ -408,63 +405,61 @@ interface ImageViewerProps {
 
 function ImageViewer({ imagePath }: ImageViewerProps) {
   const { baseUrl, queryParams, loading, error } = useContentProvider();
-  const [variantIndex, setVariantIndex] = useState(0);
-  const [imageError, setImageError] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
 
-  const imageUrls = useMemo(() => {
-    if (!baseUrl || !queryParams || !imagePath) return [];
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const [selectedVariant, setSelectedVariant] = useState<
+    typeof IMAGE_VARIANTS[number]
+  >(IMAGE_VARIANTS[0]);
+
+  const [imageError, setImageError] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+
+    const calculateVariant = (containerWidth: number) => {
+      if (containerWidth <= 0) {
+        setSelectedVariant(IMAGE_VARIANTS[0]);
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      const targetWidth = containerWidth * dpr;
+
+      const best =
+        IMAGE_VARIANTS.find(v => v.width >= targetWidth) ??
+        IMAGE_VARIANTS[IMAGE_VARIANTS.length - 1];
+
+      setSelectedVariant(best);
+    };
+
+    const initialWidth = containerRef.current.getBoundingClientRect().width;
+
+    calculateVariant(initialWidth);
+
+    const observer = new ResizeObserver(([entry]) => {
+      calculateVariant(entry.contentRect.width);
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const urls = useMemo(() => {
+    if (!baseUrl || !queryParams || !imagePath || !selectedVariant) return null;
+
     const cleanPath = imagePath.trim().replace(/^\/+|\/+$/g, "");
     const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
-    return IMAGE_VARIANTS.map(
-      (variant) => `${cleanBaseUrl}/${cleanPath}/${variant}?${queryParams}`
-    );
-  }, [baseUrl, queryParams, imagePath]);
+    const base = `${cleanBaseUrl}/${cleanPath}/image_${selectedVariant.name}`;
 
-  const currentImageUrl = imageUrls[variantIndex] || null;
-
-  const handleImageError = useCallback(() => {
-    if (variantIndex < IMAGE_VARIANTS.length - 1) {
-      setVariantIndex(variantIndex + 1);
-      setImageError(false);
-      setImageDimensions(null);
-    } else {
-      setImageError(true);
-    }
-  }, [variantIndex]);
-
-  useEffect(() => {
-    if (!currentImageUrl) return;
-
-    const img = document.createElement("img");
-    let cancelled = false;
-    const currentUrl = currentImageUrl;
-
-    img.onload = () => {
-      if (!cancelled && img.src === currentUrl) {
-        setImageDimensions({
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-        });
-      }
+    return {
+      webp: `${base}.webp?${queryParams}`,
+      jpg: `${base}.jpg?${queryParams}`,
     };
-    img.onerror = () => {
-      if (!cancelled && img.src === currentUrl) {
-        handleImageError();
-      }
-    };
-    img.src = currentImageUrl;
+  }, [baseUrl, queryParams, imagePath, selectedVariant]);
 
-    return () => {
-      cancelled = true;
-      setImageDimensions(null);
-    };
-  }, [currentImageUrl, variantIndex, handleImageError]);
 
-  if (loading || !currentImageUrl) {
+  if (loading || !urls) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -472,37 +467,25 @@ function ImageViewer({ imagePath }: ImageViewerProps) {
     );
   }
 
-  if (error) {
+  if (error || imageError) {
     return (
-      <div className="py-4">
-        <div className="text-sm text-destructive">Failed to load image: {error}</div>
+      <div className="py-12 text-center text-muted-foreground">
+        <p>Failed to load image</p>
       </div>
     );
   }
 
   return (
-    <div className="relative rounded-md border border-input bg-muted/50 flex items-center justify-center min-h-[200px] max-h-[80vh] overflow-auto">
-      {imageError ? (
-        <div className="py-12 text-center text-muted-foreground">
-          <p>Failed to load image</p>
-        </div>
-      ) : !imageDimensions ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
-      ) : (
-        <Image
-          key={variantIndex}
-          src={currentImageUrl}
-          alt="Content preview"
-          width={imageDimensions.width}
-          height={imageDimensions.height}
-          className="max-w-full max-h-[80vh] object-contain rounded-md"
-          unoptimized
-          onError={handleImageError}
-        />
-      )}
-    </div>
+    <picture ref={containerRef} className="h-full">
+      <source srcSet={urls.webp} type="image/webp" />
+      <img
+        src={urls.jpg}
+        alt="Content preview"
+        className="max-w-full max-h-full object-contain"
+        onError={() => setImageError(true)}
+        loading="lazy"
+      />
+    </picture>
   );
 }
 
